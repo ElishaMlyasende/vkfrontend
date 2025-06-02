@@ -57,7 +57,7 @@ function LoginPage() {
        {error && <div className="alert alert-danger">{error}</div>}
        
        <div className="form-group mb-3">
-         <label className="form-label fw-bold text-gray">Username</label>
+         <label className="form-label fw-bold text-gray">USERNAME</label>
          <input
            className="form-control"
            type="text"
@@ -69,7 +69,7 @@ function LoginPage() {
        </div>
 
        <div className="mb-3 form-group">
-         <label className="form-label fw-bold">Password</label>
+         <label className="form-label fw-bold">PASSWORD</label>
          <input
            className="form-control"
            type="password"
