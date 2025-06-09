@@ -3,13 +3,17 @@ import {jwtDecode} from "jwt-decode"; // ✅ Remove curly braces: use `jwtDecode
 
 function DashboardPage() {
   const [username, setUsername] = useState("");
-
+  const[menus, setmenus]=useState("");
+  const[roles, setRoles]=useState("");
+  const[permissions, setPermission]=useState({});
   useEffect(() => {
     const token = localStorage.getItem("token"); // ✅ Use the string "token"
     if (token) {
       try {
         const decoded = jwtDecode(token); // ✅ Decode safely inside useEffect
-        setUsername(decoded.sub || decoded.name); // fallback name
+        setUsername(decoded.sub || decoded.name); 
+        setRoles(decoded.Roles);
+        // fallback name
       } catch (error) {
         console.error("Invalid token:", error);
       }
@@ -29,7 +33,7 @@ function DashboardPage() {
           <a className="navbar-brand fw-bold" href="#">
             Dashboard
           </a>
-          <span className="text-white me-3 fw-bold">Hi, {username}</span>
+          <span className="text-white me-3 fw-bold">Hi, {roles} , {username}</span>
           <button
             className="btn btn-outline-light fw-bold"
             onClick={handleLogout}
