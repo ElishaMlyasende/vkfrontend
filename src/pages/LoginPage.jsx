@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 function LoginPage() {
   const [logiForm, setLoginform] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
-  const Navigate=useNavigate();
+  const navigation1=useNavigate();
 
   const loginUser = async (username, password) => {
 
@@ -29,8 +29,7 @@ function LoginPage() {
     try {
       const data = await loginUser(logiForm.username, logiForm.password);
       localStorage.setItem("token", data.token);
-      alert("Successfully logged in");
-      Navigate("/WelcomePage");
+      navigation1("/WelcomePage");
       setError("")
       console.log(data.token);
     } catch (error) {
