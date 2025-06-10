@@ -29,9 +29,8 @@ function LoginPage() {
     try {
       const data = await loginUser(logiForm.username, logiForm.password);
       localStorage.setItem("token", data.token);
-      navigation1("/WelcomePage");
+      navigation1("/DashboardPage");
       setError("")
-      console.log(data.token);
     } catch (error) {
       setError("Invalid Login Credentials");
     }

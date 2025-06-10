@@ -1,8 +1,11 @@
 import React from "react";
 import DashboardPage from "./DashboardPage";
 import addUser  from "./addUser"
+import NotFound from "./NotFound";
 
-export const componentMap={
+const componentMap={
     DashboardPage:<DashboardPage/>,
-    addUser:<addUser/>
+    addUser:<addUser/>,
+    NotFound:<NotFound/>
 }
+export default componentMap;
