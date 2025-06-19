@@ -1,349 +1,165 @@
-import React from "react";
-import { useState, useEffect } from "react";
-import { Form } from "react-router-dom";
+import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
-const workFlow=()=>{
-const [workData,setWorkData]=useState([]);
-const[error, setError]=useState("");
-const[loading,isLoading]=useState(false);
 
-//for subitting user data
+// 🟢 Initial Form Data
+const initialFormData = {
+  firstName: "",
+  middleName: "",
+  lastName: "",
+  typeOfWork: "",
+  dateReceivedFromBank: "",
+  dateSubmittedToRegistrar: "",
+  registryName: "",
+  dateCollected: "",
+  submissionToBankAndOfficer: "",
+  agreedFee: "",
+  controlNumber: "",
+  amount: "",
+  facilitationFee: "",
+  contactPerson: "",
+  remarks: "",
+  profit: "",
+};
 
-const[showForm,setShowForm] =useState(false);
-const [formData,setFormData]=useState(
-    {
-        firstName:" ",
-        middleName:"",
-        lastName:" ",
-        typeOfWork:"",
-        dateReceivedFromBank:"",
-        dateSubmittedToRegistrar:"",
-        registryName:"",
-        dateCollected:"",
-        submissionToBankAndOfficer:"",
-        agreedFee:"",
-        controlNumber:"",
-        amount:"",
-        facilitationFee:"",
-        contactPerson:"",
-        remarks:"",
-        profit:""
-    });
-const[isEditing,setIsEditing]=useState(false);
+const WorkFlow = () => {
+  // 🟡 State Management
+  const [workData, setWorkData] = useState([]);
+  const [formData, setFormData] = useState(initialFormData);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
-const handleChange=(e)=>{
-    setFormData({...formData,[e.target.name]:[e.target.value]});
+  // 🟠 Input Handler
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
-}
-const handleSubmit=async(e)=>{
+  // 🔵 Fetch Data
+  const fetchWorkFlow = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("http://localhost:9092/Client/api/all");
+      if (!res.ok) throw new Error("Failed to fetch data");
+      const data = await res.json();
+      setWorkData(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 🔴 Form Submit (Add / Edit)
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const url=isEditing?`http://localhost:9092/Client/api/edit/${formData.id}`:
-                       "http://localhost:9092/Client/api/add";
 
-    const method=isEditing?"PUT":"POST";
-    try{
-        const  res=await fetch(url, {
-                method:method,
-                headers:{"Content-Type":"application/json"},
-                body:JSON.stringify(formData)
-               }
-            
+    const url = isEditing
+      ? `http://localhost:9092/Client/api/edit/${formData.id}`
+      : "http://localhost:9092/Client/api/add";
+
+    const method = isEditing ? "PUT" : "POST";
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (!res.ok) throw new Error("Failed to save record");
+      const updatedData = await res.json();
+
+      if (isEditing) {
+        setWorkData((prev) =>
+          prev.map((item) => (item.id === updatedData.id ? updatedData : item))
         );
-        if(!res.ok){
-            throw new error("failed to save record")
-        }
-        const updatedData = await res.json();
-       
-        if (isEditing) {
-        setWorkData(workData.map(item => item.id === updatedData.id ? updatedData : item));
-       } else {
-        setWorkData([...workData, updatedData]);
-       }
+      } else {
+        setWorkData((prev) => [...prev, updatedData]);
+      }
 
-      setShowForm(false);
-      setIsEditing(false);
-        setFormData({
-            firstName: "",
-            middleName: "",
-            lastName: "",
-            typeOfWork: "",
-            dateReceivedFromBank: "",
-            dateSubmittedToRegistrar: "",
-            registryName: "",
-            dateCollected: "",
-            submissionToBankAndOfficer: "",
-            agreedFee: "",
-            controlNumber: "",
-            amount: "",
-            facilitationFee: "",
-            contactPerson: "",
-            remarks: "",
-            profit: "",
-          });
+      resetForm();
+    } catch (err) {
+      Swal.fire("Error", err.message, "error");
     }
-    catch(err){
-          alert (err.message);
-    }
-}
-const handleEditing=(item)=>{
+  };
+
+  // ⚫ Edit Button
+  const handleEdit = (item) => {
     setIsEditing(true);
     setFormData(item);
     setShowForm(true);
-}
-const handleDelete=async(id)=>{
-  const result = await Swal.fire({
-    title: 'Are you sure?',
-    text: 'You won\'t be able to revert this!',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#d33',
-    cancelButtonColor: '#3085d6',
-    confirmButtonText: 'Yes, delete it!',
-  });
+  };
 
-  if (!result.isConfirmed) return;
-  const url=`http://localhost:9092/client/api/delete/${id}`;;
-  try{
-    const res=await fetch(url,{
-      method:"DELETE",
-      headers:{"Content-type":"application/json"}
-    })
-    if(!res.ok){
-      throw new error("failed to delete");
+  // ⚪ Delete Button
+  const handleDelete = async (id) => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "You won't be able to revert this!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, delete it!",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      const res = await fetch(`http://localhost:9092/client/api/delete/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error("Failed to delete");
+      setWorkData((prev) => prev.filter((item) => item.id !== id));
+    } catch (err) {
+      Swal.fire("Error", err.message, "error");
     }
+  };
+
+  // 🔵 Reset Form
+  const resetForm = () => {
+    setFormData(initialFormData);
+    setIsEditing(false);
+    setShowForm(false);
+  };
+
+  // 🟢 Initial Fetch
+  useEffect(() => {
     fetchWorkFlow();
+  }, []);
 
-  }
-  catch (error){
-    alert(error.message);
-
-  }
-
-}
-const fetchWorkFlow= async()=>{
-     isLoading(true);
-    try{
-        const res=await fetch("http://localhost:9092/Client/api/all");
-        if(!res.ok){
-            throw new error("failed to fetch data or data not found");
-        }
-        const data=await res.json();
-        setWorkData(data);
-        setError("");
-    }
-    catch(err){
-        setError(err.message);
-    }
-    finally{
-        isLoading(false);
-    }
-}
-useEffect(
-    ()=>{
-        fetchWorkFlow();
-
-    }, []
-
-)
-return (
+  return (
     <div className="container mt-5">
-        <button className="btn btn-primary mb-3"
-        onClick={()=>setShowForm(!showForm)}
-        >
-            {showForm ? "Cancel":"Add Record"}
-        </button>
-        {showForm  &&
-         (
-            <form onSubmit={handleSubmit} className="mb-4">
-          <div className="row">
-            <div className="col-md-4 mb-3">
-              <label>First Name</label>
-              <input
-                type="text"
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleChange}
-                className="form-control"
-                required
-              />
-            </div>
-
-            <div className="col-md-4 mb-3">
-              <label>Middle Name</label>
-              <input
-                type="text"
-                name="middleName"
-                value={formData.middleName}
-                onChange={handleChange}
-                className="form-control"
-              />
-            </div>
-
-            <div className="col-md-4 mb-3">
-              <label>Last Name</label>
-              <input
-                type="text"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleChange}
-                className="form-control"
-                required
-              />
-            </div>
-
-            <div className="col-md-4 mb-3">
-              <label>Type of Work</label>
-              <input
-                type="text"
-                name="typeOfWork"
-                value={formData.typeOfWork}
-                onChange={handleChange}
-                className="form-control"
-              />
-            </div>
-
-            <div className="col-md-4 mb-3">
-              <label>Date Received From Bank</label>
-              <input
-                type="date"
-                name="dateReceivedFromBank"
-                value={formData.dateReceivedFromBank}
-                onChange={handleChange}
-                className="form-control"
-              />
-            </div>
-
-            <div className="col-md-4 mb-3">
-              <label>Date Submitted To Registrar</label>
-              <input
-                type="date"
-                name="dateSubmittedToRegistrar"
-                value={formData.dateSubmittedToRegistrar}
-                onChange={handleChange}
-                className="form-control"
-              />
-            </div>
-
-            <div className="col-md-4 mb-3">
-              <label>Registry Name</label>
-              <input
-                type="text"
-                name="registryName"
-                value={formData.registryName}
-                onChange={handleChange}
-                className="form-control"
-              />
-            </div>
-
-            <div className="col-md-4 mb-3">
-              <label>Date Collected</label>
-              <input
-                type="date"
-                name="dateCollected"
-                value={formData.dateCollected}
-                onChange={handleChange}
-                className="form-control"
-              />
-            </div>
-
-            <div className="col-md-4 mb-3">
-              <label>Submission To Bank And Officer</label>
-              <input
-                type="text"
-                name="submissionToBankAndOfficer"
-                value={formData.submissionToBankAndOfficer}
-                onChange={handleChange}
-                className="form-control"
-              />
-            </div>
-
-            <div className="col-md-4 mb-3">
-              <label>Agreed Fee</label>
-              <input
-                type="number"
-                name="agreedFee"
-                value={formData.agreedFee}
-                onChange={handleChange}
-                className="form-control"
-              />
-            </div>
-
-            <div className="col-md-4 mb-3">
-              <label>Control Number</label>
-              <input
-                type="text"
-                name="controlNumber"
-                value={formData.controlNumber}
-                onChange={handleChange}
-                className="form-control"
-              />
-            </div>
-
-            <div className="col-md-4 mb-3">
-              <label>Amount</label>
-              <input
-                type="number"
-                name="amount"
-                value={formData.amount}
-                onChange={handleChange}
-                className="form-control"
-              />
-            </div>
-
-            <div className="col-md-4 mb-3">
-              <label>Facilitation Fee</label>
-              <input
-                type="number"
-                name="facilitationFee"
-                value={formData.facilitationFee}
-                onChange={handleChange}
-                className="form-control"
-              />
-            </div>
-
-            <div className="col-md-4 mb-3">
-              <label>Contact Person</label>
-              <input
-                type="text"
-                name="contactPerson"
-                value={formData.contactPerson}
-                onChange={handleChange}
-                className="form-control"
-              />
-            </div>
-
-            <div className="col-md-4 mb-3">
-              <label>Remarks</label>
-              <input
-                type="text"
-                name="remarks"
-                value={formData.remarks}
-                onChange={handleChange}
-                className="form-control"
-              />
-            </div>
-
-            <div className="col-md-4 mb-3">
-              <label>Profit</label>
-              <input
-                type="number"
-                name="profit"
-                value={formData.profit}
-                onChange={handleChange}
-                className="form-control"
-              />
-            </div>
-          </div>
-
-          <button type="submit" className="btn btn-success">
-            Save
-          </button>
-        </form>
-
-        )
-    }
       <h2 className="mb-4">Workflow Data</h2>
 
+      <button className="btn btn-primary mb-3" onClick={() => setShowForm(!showForm)}>
+        {showForm ? "Cancel" : "Add Record"}
+      </button>
+
+      {/* 🔵 Form */}
+      {showForm && (
+        <form onSubmit={handleSubmit} className="mb-4">
+          <div className="row">
+            {Object.keys(initialFormData).map((key, index) => (
+              <div className="col-md-4 mb-3" key={index}>
+                <label>{key.replace(/([A-Z])/g, " $1").replace(/^./, str => str.toUpperCase())}</label>
+                <input
+                  type={key.includes("date") ? "date" : key.includes("Fee") || key === "amount" || key === "profit" ? "number" : "text"}
+                  name={key}
+                  value={formData[key]}
+                  onChange={handleChange}
+                  className="form-control"
+                  required={["firstName", "lastName"].includes(key)}
+                />
+              </div>
+            ))}
+          </div>
+          <button type="submit" className="btn btn-success">Save</button>
+        </form>
+      )}
+
+      {/* 🔴 Table */}
       {loading && <div className="alert alert-info">Loading...</div>}
       {error && <div className="alert alert-danger">{error}</div>}
 
@@ -355,7 +171,7 @@ return (
                 {Object.keys(workData[0]).map((key, index) => (
                   <th key={index}>{key.toUpperCase()}</th>
                 ))}
-                <th>Action</th>
+                <th colSpan={2}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -364,12 +180,12 @@ return (
                   {Object.values(item).map((value, idx) => (
                     <td key={idx}>{value}</td>
                   ))}
-                  <td><button className="btb btn-danger" onClick={handleEditing(item)}>
-                    Edit
-                    </button>
-                    </td>
-                    <td><button className="btn btn-warning" onClick={()=>handleDelete(item.id)}>delete</button></td>
-                  
+                  <td>
+                    <button className="btn btn-warning btn-sm" onClick={() => handleEdit(item)}>Edit</button>
+                  </td>
+                  <td>
+                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(item.id)}>Delete</button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -382,7 +198,6 @@ return (
       )}
     </div>
   );
+};
 
-}
-export default workFlow;
-
+export default WorkFlow;
