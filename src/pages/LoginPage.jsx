@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import DashboardPage from "./DashboardPage";
 
 function LoginPage() {
   const [logiForm, setLoginform] = useState({ username: "", password: "" });
@@ -29,7 +30,7 @@ function LoginPage() {
     try {
       const data = await loginUser(logiForm.username, logiForm.password);
       localStorage.setItem("token", data.token);
-      navigation1("/DashboardPage");
+      window.location.href = "/DashboardPage";
       setError("")
     } catch (error) {
       setError("Invalid Login Credentials");
