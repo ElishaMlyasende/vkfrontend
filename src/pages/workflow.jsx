@@ -1,6 +1,7 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import { Form } from "react-router-dom";
+import Swal from "sweetalert2";
 const workFlow=()=>{
 const [workData,setWorkData]=useState([]);
 const[error, setError]=useState("");
@@ -36,7 +37,7 @@ const handleChange=(e)=>{
 }
 const handleSubmit=async(e)=>{
     e.preventDefault();
-    const url=isEditing?`http://localhost:9092/Client/api/update/${formData.id}`:
+    const url=isEditing?`http://localhost:9092/Client/api/edit/${formData.id}`:
                        "http://localhost:9092/Client/api/add";
 
     const method=isEditing?"PUT":"POST";
@@ -45,15 +46,14 @@ const handleSubmit=async(e)=>{
                 method:method,
                 headers:{"Content-Type":"application/json"},
                 body:JSON.stringify(formData)
-
-            }
+               }
             
         );
         if(!res.ok){
-            throw new error("failed to add record")
+            throw new error("failed to save record")
         }
         const updatedData = await res.json();
-
+       
         if (isEditing) {
         setWorkData(workData.map(item => item.id === updatedData.id ? updatedData : item));
        } else {
@@ -80,8 +80,6 @@ const handleSubmit=async(e)=>{
             remarks: "",
             profit: "",
           });
-
-
     }
     catch(err){
           alert (err.message);
@@ -92,7 +90,36 @@ const handleEditing=(item)=>{
     setFormData(item);
     setShowForm(true);
 }
+const handleDelete=async(id)=>{
+  const result = await Swal.fire({
+    title: 'Are you sure?',
+    text: 'You won\'t be able to revert this!',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Yes, delete it!',
+  });
 
+  if (!result.isConfirmed) return;
+  const url=`http://localhost:9092/client/api/delete/${id}`;;
+  try{
+    const res=await fetch(url,{
+      method:"DELETE",
+      headers:{"Content-type":"application/json"}
+    })
+    if(!res.ok){
+      throw new error("failed to delete");
+    }
+    fetchWorkFlow();
+
+  }
+  catch (error){
+    alert(error.message);
+
+  }
+
+}
 const fetchWorkFlow= async()=>{
      isLoading(true);
     try{
@@ -341,6 +368,7 @@ return (
                     Edit
                     </button>
                     </td>
+                    <td><button className="btn btn-warning" onClick={()=>handleDelete(item.id)}>delete</button></td>
                   
                 </tr>
               ))}
