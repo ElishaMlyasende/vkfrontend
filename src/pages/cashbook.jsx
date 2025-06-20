@@ -2,12 +2,25 @@ import { Button } from "bootstrap";
 import React from "react";
 import { useState,useEffect } from "react";
 import Swal from "sweetalert2";
+const initialFormData = {
+    date: "",                 // for LocalDate
+    clientName: "",           // for String
+    controlNumber: "",        // for String
+    amountIn: "",             // for BigDecimal, will be treated as a number
+    amountOut: "",            // for BigDecimal
+    mpesaFee: "",             // for BigDecimal
+    advocateComment: "",      // for String
+  };
 const cashBook=()=>{
     const [cashBookData,setCashBookData]=useState([]);
     const [isloanding, setIsLoaading]=useState(false);
     const [showForm, setShowForm]=useState(false);
     const [error, setError]=("");
     const[isEditing, setIsEditing]=useState(false);
+    const[formData, setFormData]=useState(initialFormData);
+    const handleChange=(e)=>{
+        setFormData({...formData, [e.target.name]:e.target.value});
+    }
     //Function to handle submitting and editing at the same time
     const handleSubmit=async()=>{
         const Result= await Swal.fire({
@@ -25,6 +38,21 @@ const cashBook=()=>{
                              : "http://localhost:9092/Client/api/add";
         const method=isEditing?"PUT":"POST";
         try{
+            const res=await fetch(url,{
+                method:method,
+                headers:{"Content-Type":"application/json"},
+                body: JSON.stringify(formData)
+            });
+            if(!res.ok){
+                throw new error("failed to save data");
+            }
+            const updatedData=res.json();
+            if(isEditing){
+                setCashBookData((prev)=>prev.map((item)=>item.id===updatedData.id?updatedData:item));
+            }
+            else{
+                setCashBookData((prev)=>[...prev, updatedData]);
+            }
 
         }
         catch(err){
@@ -89,6 +117,35 @@ const cashBook=()=>{
      }
      return(
           <>
+          {/* 🔵 Form */}
+          {showForm && (
+  <form onSubmit={handleSubmit} className="mb-4">
+    <div className="row">
+      {Object.keys(initialFormData).map((key, index) => (
+        <div className="col-md-4 mb-3" key={index}>
+          <label>{key.replace(/([A-Z])/g, " $1").replace(/^./, str => str.toUpperCase())}</label>
+          <input
+            type={
+              key.includes("date")
+                ? "date"
+                : key.toLowerCase().includes("fee") ||
+                  key.toLowerCase().includes("amount")
+                ? "number"
+                : "text"
+            }
+            name={key}
+            value={formData[key]}
+            onChange={handleChange}
+            className="form-control"
+            required={["date", "clientName", "controlNumber", "amountIn"].includes(key)}
+          />
+        </div>
+      ))}
+    </div>
+    <button type="submit" className="btn btn-success">Save</button>
+  </form>
+)}
+
           <div className="Container mt-5">
           <Button className="btn btn-primary" onClick={()=>setShowForm(!showForm)}>
             {showForm?"Cancel":"Add PettyCash"}</Button>
