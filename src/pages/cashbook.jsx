@@ -1,3 +1,4 @@
+import { Button } from "bootstrap";
 import React from "react";
 import { useState,useEffect } from "react";
 import Swal from "sweetalert2";
@@ -6,6 +7,7 @@ const cashBook=()=>{
     const [isloanding, setIsLoaading]=useState(false);
     const [showForm, setShowForm]=useState(false);
     const [error, setError]=("");
+    const[isEditing, setIsEditing]=useState(false);
 
     //Function that handle delete
      const handleDelete=async(id)=>{
@@ -35,6 +37,9 @@ const cashBook=()=>{
         }
        
      }
+     const handleEdit=async(item)=>{
+
+     }
      const fetchCashBookData=async()=>{
          setIsLoaading(true);
         try{
@@ -57,7 +62,9 @@ const cashBook=()=>{
      }
      return(
           <>
-           <div className="Container mt-5">
+          <div className="Container mt-5">
+          <Button className="btn btn-primary" onClick={()=>setShowForm(!showForm)}>
+            {showForm?"Cancel":"Add PettyCash"}</Button>
            <div className="table-responsive">
             <div className="table table-bordered table-hover">
                 <thead className="table-dark">
