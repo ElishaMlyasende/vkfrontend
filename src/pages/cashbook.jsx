@@ -8,7 +8,36 @@ const cashBook=()=>{
     const [showForm, setShowForm]=useState(false);
     const [error, setError]=("");
     const[isEditing, setIsEditing]=useState(false);
+    //Function to handle submitting and editing at the same time
+    const handleSubmit=async()=>{
+        const Result= await Swal.fire({
+            title:"Are you sure",
+            text:"You want to edit this Item?",
+            icon:"info",
+            showCancelButton:true,
+            cancelButtonColor:"red",
+            confirmButtonColor:"green",
+            confirmButtonText:"Yes Update",
+            cancelButtonText:"No" 
+        });
+        if(( Result).isConfirmed) return;
+        const url=isEditing?`http://localhost:9092/Client/api/edit/${formData.id}`
+                             : "http://localhost:9092/Client/api/add";
+        const method=isEditing?"PUT":"POST";
+        try{
 
+        }
+        catch(err){
+            Swal.fire("Error",err.message,"error");
+        }
+    }
+    // Function for handling editing
+    const handleEdit=async(item)=>{
+        setIsEditing(true);
+        setShowForm(true);
+        setCashBookData(item);
+
+    }
     //Function that handle delete
      const handleDelete=async(id)=>{
        const result= await Swal.fire({
@@ -37,9 +66,7 @@ const cashBook=()=>{
         }
        
      }
-     const handleEdit=async(item)=>{
-
-     }
+    
      const fetchCashBookData=async()=>{
          setIsLoaading(true);
         try{
