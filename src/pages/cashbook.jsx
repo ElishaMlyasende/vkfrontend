@@ -25,7 +25,7 @@ const cashBook=()=>{
     const handleSubmit=async()=>{
         const Result= await Swal.fire({
             title:"Are you sure",
-            text:"You want to edit this Item?",
+            text:"You want to save this Item?",
             icon:"info",
             showCancelButton:true,
             cancelButtonColor:"red",
@@ -33,7 +33,7 @@ const cashBook=()=>{
             confirmButtonText:"Yes Update",
             cancelButtonText:"No" 
         });
-        if(( Result).isConfirmed) return;
+        if((!Result).isConfirmed) return;
         const url=isEditing?`http://localhost:9092/Client/api/edit/${formData.id}`
                              : "http://localhost:9092/Client/api/add";
         const method=isEditing?"PUT":"POST";
