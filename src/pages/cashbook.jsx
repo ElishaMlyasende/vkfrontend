@@ -1,3 +1,7 @@
+// this is just for mobile petty cash
+
+
+
 import { Button } from "bootstrap";
 import React from "react";
 import { useState,useEffect } from "react";
@@ -22,7 +26,8 @@ const cashBook=()=>{
         setFormData({...formData, [e.target.name]:e.target.value});
     }
     //Function to handle submitting and editing at the same time
-    const handleSubmit=async()=>{
+    const handleSubmit=async(e)=>{
+        e.preventDefault();
         const Result= await Swal.fire({
             title:"Are you sure",
             text:"You want to save this Item?",
@@ -102,7 +107,7 @@ const cashBook=()=>{
             if (!res.ok){
                 throw new Error("failed to load data");
             }
-            const fetchedDta=res.json();
+            const fetchedDta= await res.json();
             setCashBookData(data);
         }
         catch(err){
