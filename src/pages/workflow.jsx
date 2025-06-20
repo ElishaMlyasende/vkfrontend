@@ -100,6 +100,7 @@ const WorkFlow = () => {
       showCancelButton: true,
       confirmButtonColor: "#d33",
       cancelButtonColor: "#3085d6",
+      cancelButtonText:"No",
       confirmButtonText: "Yes, delete it!",
     });
 
