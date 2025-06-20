@@ -35,6 +35,36 @@ const cashPayment=()=>{
             setIsLoaading(false);
         }  
     }
+    const handleDelete=async(id)=>{
+        const result=await Swal.fire({
+            title:"Are you sure",
+            text:"You want to delete this item",
+            icon:"warning",
+            showCancelButton:true,
+            cancelButtonColor:"red",
+            confirmButtonColor:"green",
+            cancelButtonText:"Yes",
+            confirmButtonText:"Yes .. Delete"
+        })
+        if(!result.isConfirmed) return;
+        try{
+            const res=await fetch(`http://localhost:9092/client/api/delete/${id}`,{
+                method:"DELETE"
+             })
+             if(!res.ok){
+                throw new error("Failed to delete item");
+             }
+             setCashPaymentData((prev)=>prev.filter((items)=>items.id!==id))
+
+
+        }
+        catch(err){
+            Swal.fire("Error", err.message, "error");
+            
+        }
+       
+          
+    }
     return(
         <div className="Container mt-5">
             <div className="table-responsive">
