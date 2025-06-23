@@ -94,6 +94,31 @@ const cashPayment=()=>{
                     </tbody>
                 </table>
             </div>
+            {showForm &&
+                 <form onSubmit={handleSubmit} className="mb-4">
+                    <div className="row">
+                        {Object.keys(initialFormData).map((key, index)=>(
+                            <div className="col-md-4 mb-3" key={index}>
+                                <label>{key.replace(/([A-Z])/g, "$1").replace(/^./,str=>str.toUpperCase())}</label>
+                                <input
+                                 type={key.includes("date")?
+                                    "date":key.includes(amaountIn)||key.includes(amountOut)?"number":"text"
+                                }
+                                name={key}
+                                placeholder={key.replace(/([A-Z])/g,"$1").replace(/^./, str=>str.toLowerCase)}
+                                value={formData[key]}
+                                onChange={handleChange}
+                                className="form-control"
+                                required={["date","amountIn","clientName"].includes(key)}
+
+                               />
+                            </div>
+                        ))}
+                        <button type="submit" className="btn btn-success">Save</button>
+                    </div>
+
+                 </form>
+            }
         </div>
 
     )
