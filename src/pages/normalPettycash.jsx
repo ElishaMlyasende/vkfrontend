@@ -16,7 +16,47 @@ const cashPayment=()=>{
     const[isEditing,setIsEditing]=useState(false);
     const[showForm,setShowForm]=useState(false);
     const [error, setError]=useState("");
+// Below is the function for handling sub,itting and updating of data
+const handleSubmit=async(e)=>{
+    e.preventDefault();
+    const result= await Swal.fire({
+        title:"Are you sure?",
+        text:"You want to add or edit some data",
+        icon:"info",
+        showCancelButton:true,
+        cancelButtonColor:"red",
+        cancelButtonText:"No",
+        confirmButtonColor:"green",
+        confirmButtonText:"Yes ..add/edit"
+    })
+    if(!result.isConfirmed) return;
+    try{
+        const url=isEditing?`http://localhost:9092/Client/api/edit/${formData.id}`
+        : "http://localhost:9092/Client/api/add";
+        const method=isEditing?"PUT":"POST"
+        const res= await fetch(url,{
+            method:method,
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify(formData)
+        })
+        if(!res.ok){
+            throw new error("failed to save record");
+        }
+        const updatedData=res.json();
+        if(isEditing){
+            setCashPaymentData((prev)=>prev.map((items)=>items.id===id?updatedData:items));
+        }
+        else{
+            setCashPaymentData((prev)=>[...prev, updatedData]);
+        }
+     
 
+    }
+    catch(err){
+        Swal.fire("Errors", err.message,"error");
+
+    }
+}
 //Below is the function for fetching data
     const fetchCashData=async()=>{
         setIsLoaading(true);
