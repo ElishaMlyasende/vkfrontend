@@ -16,6 +16,10 @@ const cashPayment=()=>{
     const[isEditing,setIsEditing]=useState(false);
     const[showForm,setShowForm]=useState(false);
     const [error, setError]=useState("");
+    //handle change in form
+    const handleChange=(e)=>{
+        setFormData({...formData, [e.target.name]:e.target.value});
+    }
 // Below is the function for handling sub,itting and updating of data
 const handleSubmit=async(e)=>{
     e.preventDefault();
@@ -74,6 +78,12 @@ const handleSubmit=async(e)=>{
         finally{
             setIsLoaading(false);
         }  
+    }
+    //handle edit
+    const handleEdit=(items)=>{
+             setIsEditing(true);
+             setFormData(items);
+             setShowForm(true);
     }
     const handleDelete=async(id)=>{
         const result=await Swal.fire({
