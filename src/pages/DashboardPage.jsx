@@ -1,14 +1,12 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import DynamicRoutes from "./DynamicRoutes";
 
 export default function DashboardPage() {
   const [username, setUsername] = useState("");
   const [roles, setRoles] = useState("");
   const [menus, setMenus] = useState([]);
-  const navigate = useNavigate();
-  const hasRedirected = useRef(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -16,14 +14,8 @@ export default function DashboardPage() {
       try {
         const decoded = jwtDecode(token);
         setUsername(decoded.sub || decoded.name);
-        setRoles(decoded.Roles);
+        setRoles(decoded.Roles?.[0] || "");
         setMenus(decoded.menus || []);
-
-        // Redirect only once
-        if (!hasRedirected.current && decoded.menus?.length > 0) {
-          hasRedirected.current = true;
-          navigate(decoded.menus[0].path);
-        }
       } catch (error) {
         console.error("Invalid token", error);
       }

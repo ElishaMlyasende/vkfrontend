@@ -7,7 +7,7 @@ import UserMenu from "./userMenu";
 import UserMenuForm from "./UserMenuForm";
 import UserPermissionForm from "./UserPermissionForm";
 import Menu from "./Menu";
-import cashBook from "./cashbook";
+import CashBook from "./cashbook";
 import cashPayment from "./normalPettycash";
 import caseManagement from "./case";
 
@@ -21,7 +21,7 @@ const componentMap = {
   UserMenu,
   UserMenuForm,
   UserPermissionForm,
-  cashBook,
+  CashBook,
   cashPayment,
   caseManagement,
 };
