@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from "react";
-import {jwtDecode} from "jwt-decode";
+import React, { useEffect, useRef, useState } from "react";
+import { jwtDecode } from "jwt-decode";
+import { Link, useNavigate } from "react-router-dom";
 import DynamicRoutes from "./DynamicRoutes";
-import { Link } from "react-router-dom";
 
 export default function DashboardPage() {
   const [username, setUsername] = useState("");
   const [roles, setRoles] = useState("");
   const [menus, setMenus] = useState([]);
+  const navigate = useNavigate();
+  const hasRedirected = useRef(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -16,6 +18,12 @@ export default function DashboardPage() {
         setUsername(decoded.sub || decoded.name);
         setRoles(decoded.Roles);
         setMenus(decoded.menus || []);
+
+        // Redirect only once
+        if (!hasRedirected.current && decoded.menus?.length > 0) {
+          hasRedirected.current = true;
+          navigate(decoded.menus[0].path);
+        }
       } catch (error) {
         console.error("Invalid token", error);
       }
@@ -29,14 +37,11 @@ export default function DashboardPage() {
 
   return (
     <>
-      {/* Navbar */}
       <nav className="navbar navbar-expand-lg navbar-dark bg-primary">
         <div className="container">
-          <a className="navbar-brand fw-bold" href="#">
-            Dashboard
-          </a>
+          <a className="navbar-brand fw-bold" href="#">Dashboard</a>
           <span className="text-white me-3 fw-bold">
-            Hi, {roles} , {username}
+            Hi, {roles}, {username}
           </span>
           <button className="btn btn-outline-light fw-bold" onClick={handleLogout}>
             Logout
@@ -46,7 +51,6 @@ export default function DashboardPage() {
 
       <div className="container-fluid">
         <div className="row min-vh-100">
-          {/* Sidebar */}
           <nav className="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse border-end">
             <div className="position-sticky pt-3">
               <ul className="nav flex-column fw-bold">
@@ -61,9 +65,12 @@ export default function DashboardPage() {
             </div>
           </nav>
 
-          {/* Main content */}
           <main className="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
-            <DynamicRoutes menus={menus} />
+            {menus.length > 0 ? (
+              <DynamicRoutes menus={menus} />
+            ) : (
+              <p>Loading...</p>
+            )}
           </main>
         </div>
       </div>
