@@ -3,16 +3,14 @@ import Swal from "sweetalert2";
 
 const initialFormData = {
   date: "",
-  clientName: "",
-  controlNumber: "",
+  description: "",
   amountIn: "",
   amountOut: "",
-  mpesaFee: "",
   advocateComment: "",
 };
 
-const CashBook = () => {
-  const [cashBookData, setCashBookData] = useState([]);
+const NormalPettyCash = () => {
+  const [pettyCashData, setPettyCashData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
@@ -20,7 +18,7 @@ const CashBook = () => {
   const [formData, setFormData] = useState(initialFormData);
 
   useEffect(() => {
-    fetchCashBookData();
+    fetchPettyCashData();
   }, []);
 
   const handleChange = (e) => {
@@ -29,9 +27,10 @@ const CashBook = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const Result = await Swal.fire({
-      title: "Are you sure",
-      text: "You want to save this Item?",
+
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "You want to save this item?",
       icon: "info",
       showCancelButton: true,
       cancelButtonColor: "red",
@@ -40,47 +39,36 @@ const CashBook = () => {
       cancelButtonText: "No",
     });
 
-    if (!Result.isConfirmed) return;
+    if (!result.isConfirmed) return;
 
     const url = isEditing
-      ? `http://localhost:9093/cashbook/mobile/edit/${formData.id}`
-      : "http://localhost:9093/cashbook/mobile/add";
+      ? `http://localhost:9093/cashbook/edit/${formData.id}`
+      : "http://localhost:9093/cashbook/add";
     const method = isEditing ? "PUT" : "POST";
 
     try {
       const res = await fetch(url, {
-        method: method,
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
-      if (!res.ok) {
-        throw new Error("Failed to save data");
-      }
+      const message = await res.text();
+      if (!res.ok) throw new Error(message || "Failed to save");
 
-      const updatedData = await res.json();
-
-      if (isEditing) {
-        setCashBookData((prev) =>
-          prev.map((item) =>
-            item.id === updatedData.id ? updatedData : item
-          )
-        );
-      } else {
-        setCashBookData((prev) => [...prev, updatedData]);
-      }
-
-      setShowForm(false);
+      Swal.fire("Success", message, "success");
       setFormData(initialFormData);
+      setShowForm(false);
       setIsEditing(false);
+      fetchPettyCashData();
     } catch (err) {
       Swal.fire("Error", err.message, "error");
     }
   };
 
   const handleEdit = (item) => {
-    setIsEditing(true);
     setFormData(item);
+    setIsEditing(true);
     setShowForm(true);
   };
 
@@ -99,29 +87,30 @@ const CashBook = () => {
     if (!result.isConfirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:9093/cashbook/mobile/delete/${id}`, {
+      const res = await fetch(`http://localhost:9093/cashbook/delete/${id}`, {
         method: "DELETE",
       });
 
-      if (!res.ok) {
-        throw new Error("Failed to delete");
-      }
+      const message = await res.text();
+      if (!res.ok) throw new Error(message || "Failed to delete");
 
-      setCashBookData((prev) => prev.filter((item) => item.id !== id));
+      Swal.fire("Success", message, "success");
+      setPettyCashData((prev) => prev.filter((item) => item.id !== id));
     } catch (err) {
       Swal.fire("Error", err.message, "error");
     }
   };
 
-  const fetchCashBookData = async () => {
+  const fetchPettyCashData = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("http://localhost:9093/cashbook/mobile/all");
-      if (!res.ok) {
-        throw new Error("Failed to load data");
-      }
-      const fetchedData = await res.json();
-      setCashBookData(fetchedData);
+      const res = await fetch("http://localhost:9093/cashbook/all");
+      const text = await res.text();
+
+      if (!res.ok) throw new Error(text || "Failed to load data");
+
+      const data = JSON.parse(text);
+      setPettyCashData(data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -145,27 +134,32 @@ const CashBook = () => {
                   type={
                     key.includes("date")
                       ? "date"
-                      : key.toLowerCase().includes("fee") ||
-                        key.toLowerCase().includes("amount")
+                      : key.toLowerCase().includes("amount")
                       ? "number"
                       : "text"
                   }
                   name={key}
-                  value={formData[key]}
+                  value={formData[key] || ""}
                   onChange={handleChange}
                   className="form-control"
-                  required={["date", "clientName", "controlNumber", "amountIn"].includes(key)}
+                  required={["date", "amountIn", "description"].includes(key)}
                 />
               </div>
             ))}
           </div>
-          <button type="submit" className="btn btn-success">Save</button>
+          <button type="submit" className="btn btn-success">
+            Save
+          </button>
         </form>
       )}
 
       <button
         className="btn btn-primary mb-3"
-        onClick={() => setShowForm(!showForm)}
+        onClick={() => {
+          setShowForm(!showForm);
+          setFormData(initialFormData);
+          setIsEditing(false);
+        }}
       >
         {showForm ? "Cancel" : "Add PettyCash"}
       </button>
@@ -179,19 +173,28 @@ const CashBook = () => {
           <table className="table table-bordered table-hover">
             <thead className="table-dark">
               <tr>
-                {cashBookData.length > 0 &&
-                  Object.keys(cashBookData[0]).map((item, index) => (
-                    <th key={index}>{item.toUpperCase()}</th>
+                {pettyCashData.length > 0 &&
+                  Object.keys(pettyCashData[0]).map((key, index) => (
+                    <th key={index}>{key.toUpperCase()}</th>
                   ))}
+                <th>PROFIT</th>
                 <th colSpan={2}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {cashBookData.map((item, index) => (
+              {pettyCashData.map((item, index) => (
                 <tr key={index}>
-                  {Object.values(item).map((value, id) => (
-                    <td key={id}>{value}</td>
+                  {Object.values(item).map((val, idx) => (
+                    <td key={idx}>{val}</td>
                   ))}
+                  <td>
+                    {(() => {
+                      const inAmt = parseFloat(item.amountIn || 0);
+                      const outAmt = parseFloat(item.amountOut || 0);
+                      const profit = inAmt - outAmt;
+                      return profit.toFixed(2);
+                    })()}
+                  </td>
                   <td>
                     <button
                       className="btn btn-warning"
@@ -218,4 +221,4 @@ const CashBook = () => {
   );
 };
 
-export default CashBook;
+export default NormalPettyCash;

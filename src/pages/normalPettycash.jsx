@@ -1,176 +1,211 @@
-import React from "react";
-import { useState } from "react";
-import Swal from "sweetalert2";
+import React, { useEffect, useState } from "react";
+import Swal from "sweetalert2";   // <-- Add this import!
 
-const initialFormData={
-    date: "",               // for LocalDate
-    description: "",        // for transaction description
-    amountIn: "",           // for Double (money in)
-    amountOut: "",          // for Double (money out)
-    advocateComment: "",    // for advocate/lawyer comments
+const initialFormData = {
+  date: "",
+  description: "",
+  amountIn: "",
+  amountOut: "",
+  advocateComment: "",
 };
-const cashPayment=()=>{
-    const[formData,setFormData]=useState(initialFormData);
-    const[cashPaymentData,setCashPaymentData]=useState([]);
-    const[isloanding,setIsLoaading]=useState("");
-    const[isEditing,setIsEditing]=useState(false);
-    const[showForm,setShowForm]=useState(false);
-    const [error, setError]=useState("");
-    //handle change in form
-    const handleChange=(e)=>{
-        setFormData({...formData, [e.target.name]:e.target.value});
+
+const CashPayment = () => {
+  const [formData, setFormData] = useState(initialFormData);
+  const [cashPaymentData, setCashPaymentData] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const res = await fetch("http://localhost:9093/cashbook/all");
+      const text = await res.text();
+      if (!res.ok) throw new Error(text);
+      const data = JSON.parse(text);
+      setCashPaymentData(data);
+    } catch (err) {
+      setError(err.message);
     }
-// Below is the function for handling sub,itting and updating of data
-const handleSubmit=async(e)=>{
+  };
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const result= await Swal.fire({
-        title:"Are you sure?",
-        text:"You want to add or edit some data",
-        icon:"info",
-        showCancelButton:true,
-        cancelButtonColor:"red",
-        cancelButtonText:"No",
-        confirmButtonColor:"green",
-        confirmButtonText:"Yes ..add/edit"
-    })
-    if(!result.isConfirmed) return;
-    try{
-        const url=isEditing?`http://localhost:9092/Client/api/edit/${formData.id}`
-        : "http://localhost:9092/Client/api/add";
-        const method=isEditing?"PUT":"POST"
-        const res= await fetch(url,{
-            method:method,
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify(formData)
-        })
-        if(!res.ok){
-            throw new error("failed to save record");
-        }
-        const updatedData=res.json();
-        if(isEditing){
-            setCashPaymentData((prev)=>prev.map((items)=>items.id===id?updatedData:items));
-        }
-        else{
-            setCashPaymentData((prev)=>[...prev, updatedData]);
-        }
-     
+    const url = isEditing
+      ? `http://localhost:9093/cashbook/edit/${formData.id}`
+      : "http://localhost:9093/cashbook/add";
+    const method = isEditing ? "PUT" : "POST";
 
-    }
-    catch(err){
-        Swal.fire("Errors", err.message,"error");
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
 
-    }
-}
-//Below is the function for fetching data
-    const fetchCashData=async()=>{
-        setIsLoaading(true);
-        try{
-            const res=await fetch("http://localhost:9094/pettycash/add");
-            if(!res.ok){
-                throw new Error("failed to load data");
-            }
-            const data=await res.json();
-            setCashPaymentData(data);
-        }
-        catch(err){
-            setError(err.message);
-        }
-        finally{
-            setIsLoaading(false);
-        }  
-    }
-    //handle edit
-    const handleEdit=(items)=>{
-             setIsEditing(true);
-             setFormData(items);
-             setShowForm(true);
-    }
-    const handleDelete=async(id)=>{
-        const result=await Swal.fire({
-            title:"Are you sure",
-            text:"You want to delete this item",
-            icon:"warning",
-            showCancelButton:true,
-            cancelButtonColor:"red",
-            confirmButtonColor:"green",
-            cancelButtonText:"Yes",
-            confirmButtonText:"Yes .. Delete"
-        })
-        if(!result.isConfirmed) return;
-        try{
-            const res=await fetch(`http://localhost:9092/client/api/delete/${id}`,{
-                method:"DELETE"
-             })
-             if(!res.ok){
-                throw new error("Failed to delete item");
-             }
-             setCashPaymentData((prev)=>prev.filter((items)=>items.id!==id))
+      const message = await res.text();
+      if (!res.ok) throw new Error(message || "Failed to save");
 
-
-        }
-        catch(err){
-            Swal.fire("Error", err.message, "error");
-            
-        }
-       
-          
+      Swal.fire("Success", message, "success");
+      setFormData(initialFormData);
+      setShowForm(false);
+      setIsEditing(false);
+      fetchData();  // refresh list
+    } catch (err) {
+      Swal.fire("Error", err.message, "error");
     }
-    return(
-        <div className="Container mt-5">
-            <div className="table-responsive">
-                <table table-bordered table-hover>
-                    <thead className="table-dark">
-                    <tr>
-                        {Object.keys(cashPaymentData[0]).map((key,index)=>(
-                            
-                                <th key={index}>{key.toUpperCase()}</th>
-                        ))}
-                        <th colSpan={2}>Action</th>
-                           </tr>
+  };
 
-                    </thead>
-                    <tbody>
-                        {cashPaymentData.map((items, index)=>(
-                            <tr key={index}>
-                                {Object.values(items).map((values, idx)=>(
-                                    <td key={idx}>{values}</td>
-                                ))}
-                                <td><button className="btn btn-warning bg-primary" onClick={()=>handleEdit(items)}>edit</button></td>
-                                <td><button className="btn btn-danger bg-red" onClick={()=>handleDelete(items.id)}>delete</button></td>
-                           
-                            </tr>
-                        ))}
-                       
-                    </tbody>
-                </table>
+  const handleEdit = (item) => {
+    setFormData(item);
+    setIsEditing(true);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id) => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "You want to delete this item?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "green",
+      cancelButtonColor: "red",
+      confirmButtonText: "Yes, Delete",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      const res = await fetch(`http://localhost:9093/cashbook/delete/${id}`, {
+        method: "DELETE",
+      });
+
+      const message = await res.text();
+      if (!res.ok) throw new Error(message);
+
+      Swal.fire("Success", message, "success");
+      setCashPaymentData((prev) => prev.filter((item) => item.id !== id));
+    } catch (err) {
+      Swal.fire("Error", err.message, "error");
+    }
+  };
+
+  return (
+    <div className="container mt-4">
+      <h3>Normal Petty Cash</h3>
+      <button
+        className="btn btn-primary mb-3"
+        onClick={() => {
+          setShowForm(true);
+          setFormData(initialFormData);
+          setIsEditing(false);
+        }}
+      >
+        Add Petty Cash
+      </button>
+
+      {error && <p className="text-danger">{error}</p>}
+
+      <div className="table-responsive">
+        <table className="table table-bordered">
+          <thead className="table-dark">
+            <tr>
+              {Object.keys(initialFormData).map((key) => (
+                <th key={key}>{key.toUpperCase()}</th>
+              ))}
+              <th>EDIT</th>
+              <th>DELETE</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cashPaymentData.length > 0 ? (
+              cashPaymentData.map((item) => (
+                <tr key={item.id}>
+                  {Object.keys(initialFormData).map((key) => (
+                    <td key={key}>{item[key]}</td>
+                  ))}
+                  <td>
+                    <button
+                      className="btn btn-warning btn-sm"
+                      onClick={() => handleEdit(item)}
+                    >
+                      Edit
+                    </button>
+                  </td>
+                  <td>
+                    <button
+                      className="btn btn-danger btn-sm"
+                      onClick={() => handleDelete(item.id)}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="100%" className="text-center">
+                  No data available
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleSubmit} className="mt-3">
+          <div className="row">
+            {Object.keys(initialFormData).map((key) => (
+              <div className="col-md-4 mb-2" key={key}>
+                <label className="form-label">
+                  {key.replace(/([A-Z])/g, " $1").toUpperCase()}
+                </label>
+                <input
+                  type={
+                    key.includes("date")
+                      ? "date"
+                      : key.includes("amount")
+                      ? "number"
+                      : "text"
+                  }
+                  name={key}
+                  value={formData[key]}
+                  onChange={handleChange}
+                  className="form-control"
+                  required
+                />
+              </div>
+            ))}
+            <div className="col-md-12 mt-2">
+              <button type="submit" className="btn btn-success">
+                {isEditing ? "Update" : "Save"}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary ms-2"
+                onClick={() => {
+                  setShowForm(false);
+                  setFormData(initialFormData);
+                  setIsEditing(false);
+                }}
+              >
+                Cancel
+              </button>
             </div>
-            {showForm &&
-                 <form onSubmit={handleSubmit} className="mb-4">
-                    <div className="row">
-                        {Object.keys(initialFormData).map((key, index)=>(
-                            <div className="col-md-4 mb-3" key={index}>
-                                <label>{key.replace(/([A-Z])/g, "$1").replace(/^./,str=>str.toUpperCase())}</label>
-                                <input
-                                 type={key.includes("date")?
-                                    "date":key.includes(amaountIn)||key.includes(amountOut)?"number":"text"
-                                }
-                                name={key}
-                                placeholder={key.replace(/([A-Z])/g,"$1").replace(/^./, str=>str.toLowerCase)}
-                                value={formData[key]}
-                                onChange={handleChange}
-                                className="form-control"
-                                required={["date","amountIn","clientName"].includes(key)}
+          </div>
+        </form>
+      )}
+    </div>
+  );
+};
 
-                               />
-                            </div>
-                        ))}
-                        <button type="submit" className="btn btn-success">Save</button>
-                    </div>
-
-                 </form>
-            }
-        </div>
-
-    )
-}
-export default cashPayment;
+export default CashPayment;

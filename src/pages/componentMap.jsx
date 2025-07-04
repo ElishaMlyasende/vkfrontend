@@ -1,5 +1,5 @@
 import DashboardPage from "./DashboardPage";
-import addUser from "./addUser";
+import AddUser from "./AddUser";
 import NotFound from "./NotFound";
 import workFlow from "./workflow";
 import Permission from "./permission";
@@ -8,12 +8,12 @@ import UserMenuForm from "./UserMenuForm";
 import UserPermissionForm from "./UserPermissionForm";
 import Menu from "./Menu";
 import CashBook from "./cashbook";
-import cashPayment from "./normalPettycash";
-import caseManagement from "./case";
+import CashPayment from "./NormalPettyCash";
+import CaseManagement from "./Case";
 
 const componentMap = {
   DashboardPage,
-  addUser,
+  AddUser,
   NotFound,
   workFlow,
   Menu,
@@ -22,7 +22,7 @@ const componentMap = {
   UserMenuForm,
   UserPermissionForm,
   CashBook,
-  cashPayment,
+  CashPayment,
   caseManagement,
 };
 
