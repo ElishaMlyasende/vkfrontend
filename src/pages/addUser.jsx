@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 
 const initialForm = {
@@ -9,183 +9,212 @@ const initialForm = {
   email: "",
   phone_number: "",
   password: "",
-  roles: [],
-  permissions: [],
 };
 
 const AddUser = () => {
   const [users, setUsers] = useState([]);
   const [formData, setFormData] = useState(initialForm);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [roles, setRoles] = useState([]);
-  const [permissions, setPermissions] = useState([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetchUsers();
-    fetchRoles();
-    fetchPermissions();
   }, []);
 
   const fetchUsers = async () => {
-    const res = await fetch("http://localhost:8082/api/v1/user/all");
-    const data = await res.json();
-    setUsers(data);
-  };
+    try {
+      const res = await fetch("http://localhost:8082/api/v1/user/all");
+      const text = await res.text();
+      const data = JSON.parse(text);
 
-  const fetchRoles = async () => {
-    const res = await fetch("http://localhost:8082/api/role/roles");
-    const data = await res.json();
-    setRoles(data);
-  };
-
-  const fetchPermissions = async () => {
-    const res = await fetch("http://localhost:8082/api/permission/permissions");
-    const data = await res.json();
-    setPermissions(data);
+      if (Array.isArray(data)) {
+        setUsers(data);
+      } else {
+        console.error("Expected array, got:", data);
+        setUsers([]);
+      }
+    } catch (err) {
+      setError("Error fetching users");
+      console.error(err);
+    }
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  const handleMultiSelect = (e) => {
-    const { name, options } = e.target;
-    const values = Array.from(options)
-      .filter((o) => o.selected)
-      .map((o) => ({ id: o.value }));
-    setFormData({ ...formData, [name]: values });
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const method = editingId ? "PUT" : "POST";
-    const url = editingId
+
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: `You want to ${isEditing ? "update" : "add"} this user?`,
+      icon: "info",
+      showCancelButton: true,
+      confirmButtonText: "Yes",
+      cancelButtonText: "No",
+    });
+
+    if (!result.isConfirmed) return;
+
+    const method = isEditing ? "PUT" : "POST";
+    const url = isEditing
       ? `http://localhost:8082/api/v1/user/Edit/${editingId}`
       : "http://localhost:8082/api/v1/user/add";
 
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
-    });
+    const payload = { ...formData };
+    if (isEditing) delete payload.password;
 
-    if (res.ok) {
-      Swal.fire("Success", `User ${editingId ? "updated" : "added"}`, "success");
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const message = await res.text();
+      if (!res.ok) throw new Error(message || "Failed to save user");
+
+      Swal.fire("Success", message, "success");
       setFormData(initialForm);
+      setShowForm(false);
+      setIsEditing(false);
       setEditingId(null);
       fetchUsers();
-    } else {
-      Swal.fire("Error", "Something went wrong", "error");
+    } catch (err) {
+      Swal.fire("Error", err.message, "error");
     }
   };
 
   const handleEdit = (user) => {
+    setFormData(user);
     setEditingId(user.id);
-    setFormData({
-      ...user,
-      roles: user.roles.map((r) => r.id),
-      permissions: user.permissions.map((p) => p.id),
-    });
+    setIsEditing(true);
+    setShowForm(true);
   };
 
   const handleDelete = async (id) => {
     const result = await Swal.fire({
-      title: "Delete User?",
-      text: "This action cannot be undone!",
+      title: "Are you sure?",
+      text: "You want to delete this user?",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Yes, delete it!",
+      confirmButtonText: "Yes, Delete",
+      cancelButtonText: "Cancel",
     });
+
     if (!result.isConfirmed) return;
 
-    const res = await fetch(`http://localhost:8082/api/v1/user/remove/${id}`, {
-      method: "DELETE",
-    });
-    if (res.ok) {
-      Swal.fire("Deleted", "User deleted", "success");
-      fetchUsers();
-    } else {
-      Swal.fire("Error", "Delete failed", "error");
+    try {
+      const res = await fetch(`http://localhost:8082/api/v1/user/remove/${id}`, {
+        method: "DELETE",
+      });
+
+      const message = await res.text();
+      if (!res.ok) throw new Error(message || "Failed to delete");
+
+      Swal.fire("Success", message, "success");
+      setUsers((prev) => prev.filter((u) => u.id !== id));
+    } catch (err) {
+      Swal.fire("Error", err.message, "error");
     }
   };
 
   return (
     <div className="container mt-5">
-      <form onSubmit={handleSubmit} className="mb-4">
-        <div className="row">
-          {Object.keys(initialForm).filter(key => !["roles", "permissions"].includes(key)).map((key) => (
-            <div className="col-md-4 mb-3" key={key}>
-              <label>{key.replace("_", " ").toUpperCase()}</label>
-              <input
-                type="text"
-                className="form-control"
-                name={key}
-                value={formData[key]}
-                onChange={handleChange}
-                required
-              />
-            </div>
-          ))}
-          <div className="col-md-4 mb-3">
-            <label>Roles</label>
-            <select
-              name="roles"
-              multiple
-              className="form-control"
-              value={formData.roles.map(r => r.id || r)}
-              onChange={handleMultiSelect}
-            >
-              {roles.map((r) => (
-                <option key={r.id} value={r.id}>{r.name}</option>
-              ))}
-            </select>
+      {showForm && (
+        <form onSubmit={handleSubmit} className="mb-4">
+          <div className="row">
+            {Object.keys(initialForm).map((key, idx) => {
+              if (key === "password" && isEditing) return null;
+              return (
+                <div className="col-md-4 mb-3" key={idx}>
+                  <label>
+                    {key.replace(/_/g, " ").toUpperCase()}
+                  </label>
+                  <input
+                    type={key === "password" ? "password" : "text"}
+                    name={key}
+                    value={formData[key] || ""}
+                    onChange={handleChange}
+                    className="form-control"
+                    required={["first_name", "username", "email"].includes(key)}
+                  />
+                </div>
+              );
+            })}
           </div>
-          <div className="col-md-4 mb-3">
-            <label>Permissions</label>
-            <select
-              name="permissions"
-              multiple
-              className="form-control"
-              value={formData.permissions.map(p => p.id || p)}
-              onChange={handleMultiSelect}
-            >
-              {permissions.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <button className="btn btn-success">{editingId ? "Update" : "Add"} User</button>
-      </form>
+          <button type="submit" className="btn btn-success">
+            {isEditing ? "Update" : "Save"}
+          </button>
+        </form>
+      )}
 
-      <table className="table table-bordered">
-        <thead className="table-dark">
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Username</th>
-            <th>Email</th>
-            <th>Phone</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((u) => (
-            <tr key={u.id}>
-              <td>{u.id}</td>
-              <td>{u.first_name} {u.middle_name} {u.last_name}</td>
-              <td>{u.username}</td>
-              <td>{u.email}</td>
-              <td>{u.phone_number}</td>
-              <td>
-                <button className="btn btn-warning btn-sm me-2" onClick={() => handleEdit(u)}>Edit</button>
-                <button className="btn btn-danger btn-sm" onClick={() => handleDelete(u.id)}>Delete</button>
-              </td>
+      <button
+        className="btn btn-primary mb-3"
+        onClick={() => {
+          setShowForm(!showForm);
+          setFormData(initialForm);
+          setIsEditing(false);
+          setEditingId(null);
+        }}
+      >
+        {showForm ? "Cancel" : "Add User"}
+      </button>
+
+      {error && <p className="text-danger">{error}</p>}
+
+      <div className="table-responsive">
+        <table className="table table-bordered table-striped">
+          <thead className="table-dark">
+            <tr>
+              <th>ID</th>
+              <th>FULL NAME</th>
+              <th>USERNAME</th>
+              <th>EMAIL</th>
+              <th>PHONE</th>
+              <th colSpan={2}>ACTIONS</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {users.length > 0 ? (
+              users.map((u) => (
+                <tr key={u.id}>
+                  <td>{u.id}</td>
+                  <td>{u.first_name} {u.middle_name} {u.last_name}</td>
+                  <td>{u.username}</td>
+                  <td>{u.email}</td>
+                  <td>{u.phone_number}</td>
+                  <td>
+                    <button
+                      className="btn btn-warning btn-sm"
+                      onClick={() => handleEdit(u)}
+                    >
+                      Edit
+                    </button>
+                  </td>
+                  <td>
+                    <button
+                      className="btn btn-danger btn-sm"
+                      onClick={() => handleDelete(u.id)}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="7" className="text-center text-muted">
+                  No users found.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

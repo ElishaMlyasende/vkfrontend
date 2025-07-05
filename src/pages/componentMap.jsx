@@ -9,7 +9,7 @@ import UserPermissionForm from "./UserPermissionForm";
 import Menu from "./Menu";
 import CashBook from "./cashbook";
 import CashPayment from "./NormalPettyCash";
-import CaseManagement from "./Case";
+import CaseManagement from "./case";
 
 const componentMap = {
   DashboardPage,
@@ -23,7 +23,7 @@ const componentMap = {
   UserPermissionForm,
   CashBook,
   CashPayment,
-  caseManagement,
+  CaseManagement,
 };
 
 export default componentMap;

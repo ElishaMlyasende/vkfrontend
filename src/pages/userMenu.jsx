@@ -1,28 +1,55 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
-const BASE_URL = "http://localhost:8080/api/v1/user/user_menu";
+const BASE_URL = "http://localhost:8082/api/v1/user/user_menu";
+const USERS_URL = "http://localhost:8082/api/v1/user/all"; // adjust your user api url
+const MENUS_URL = "http://localhost:8082/menu/all"; // adjust your menu api url
 
 function UserMenu() {
-  const [userId, setUserId] = useState("");
-  const [menuIds, setMenuIds] = useState("");
+  const [users, setUsers] = useState([]);
+  const [menus, setMenus] = useState([]);
+
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [selectedMenuIds, setSelectedMenuIds] = useState([]);
   const [action, setAction] = useState("add");
+
+  // Fetch users and menus on mount
+  useEffect(() => {
+    fetchUsers();
+    fetchMenus();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch(USERS_URL);
+      const data = await res.json();
+      setUsers(data);
+    } catch (err) {
+      console.error("Failed to fetch users", err);
+    }
+  };
+
+  const fetchMenus = async () => {
+    try {
+      const res = await fetch(MENUS_URL);
+      const data = await res.json();
+      setMenus(data);
+    } catch (err) {
+      console.error("Failed to fetch menus", err);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const menuIdList = menuIds
-      .split(",")
-      .map((id) => parseInt(id.trim()))
-      .filter((id) => !isNaN(id));
 
-    if (!userId || menuIdList.length === 0) {
-      alert("Please enter valid user ID and menu IDs");
+    if (!selectedUserId || selectedMenuIds.length === 0) {
+      alert("Please select a user and at least one menu.");
       return;
     }
 
     const queryParams =
       action === "add"
-        ? `user_id=${userId}&menuIds=${menuIdList.join(",")}`
-        : `id=${userId}&menuIds=${menuIdList.join(",")}`;
+        ? `user_id=${selectedUserId}&menuIds=${selectedMenuIds.join(",")}`
+        : `id=${selectedUserId}&menuIds=${selectedMenuIds.join(",")}`;
 
     let method = "POST";
     if (action === "update") method = "PUT";
@@ -35,8 +62,8 @@ function UserMenu() {
 
       if (res.ok) {
         alert(`Successfully ${action}ed user menu`);
-        setUserId("");
-        setMenuIds("");
+        setSelectedUserId("");
+        setSelectedMenuIds([]);
       } else {
         alert("Something went wrong");
       }
@@ -46,28 +73,49 @@ function UserMenu() {
     }
   };
 
+  // handle menu multi-select change
+  const handleMenuChange = (e) => {
+    const options = e.target.options;
+    const selected = [];
+    for (let i = 0; i < options.length; i++) {
+      if (options[i].selected) selected.push(options[i].value);
+    }
+    setSelectedMenuIds(selected);
+  };
+
   return (
     <div style={{ padding: "20px", maxWidth: "600px", margin: "auto" }}>
       <h2>User Menu Management</h2>
       <form onSubmit={handleSubmit}>
-        <label>User ID:</label>
-        <input
-          type="number"
-          value={userId}
-          onChange={(e) => setUserId(e.target.value)}
+        <label>User:</label>
+        <select
+          value={selectedUserId}
+          onChange={(e) => setSelectedUserId(e.target.value)}
           required
           style={{ display: "block", marginBottom: "10px", width: "100%" }}
-        />
+        >
+          <option value="">-- Select User --</option>
+          {users.map((user) => (
+            <option key={user.id} value={user.id}>
+              {user.first_name} {user.middle_name} {user.last_name}
+            </option>
+          ))}
+        </select>
 
-        <label>Menu IDs (comma separated):</label>
-        <input
-          type="text"
-          value={menuIds}
-          onChange={(e) => setMenuIds(e.target.value)}
-          placeholder="e.g. 1,2,3"
+        <label>Menus:</label>
+        <select
+          multiple
+          value={selectedMenuIds}
+          onChange={handleMenuChange}
           required
-          style={{ display: "block", marginBottom: "10px", width: "100%" }}
-        />
+          style={{ display: "block", marginBottom: "10px", width: "100%", height: "150px" }}
+        >
+          {menus.map((menu) => (
+            <option key={menu.id} value={menu.id}>
+              {menu.title}
+            </option>
+          ))}
+        </select>
 
         <label>Action:</label>
         <select
