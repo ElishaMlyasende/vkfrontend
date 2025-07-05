@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from "react";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 const BASE_URL = "http://localhost:8082/api/v1/user/user_menu";
-const USERS_URL = "http://localhost:8082/api/v1/user/all"; // adjust your user api url
-const MENUS_URL = "http://localhost:8082/menu/all"; // adjust your menu api url
+const USERS_URL = "http://localhost:8082/api/v1/user/all";
+const MENUS_URL = "http://localhost:8082/menu/all";
 
 function UserMenu() {
   const [users, setUsers] = useState([]);
   const [menus, setMenus] = useState([]);
-
   const [selectedUserId, setSelectedUserId] = useState("");
   const [selectedMenuIds, setSelectedMenuIds] = useState([]);
   const [action, setAction] = useState("add");
 
-  // Fetch users and menus on mount
   useEffect(() => {
     fetchUsers();
     fetchMenus();
@@ -73,7 +72,6 @@ function UserMenu() {
     }
   };
 
-  // handle menu multi-select change
   const handleMenuChange = (e) => {
     const options = e.target.options;
     const selected = [];
@@ -84,52 +82,68 @@ function UserMenu() {
   };
 
   return (
-    <div style={{ padding: "20px", maxWidth: "600px", margin: "auto" }}>
-      <h2>User Menu Management</h2>
-      <form onSubmit={handleSubmit}>
-        <label>User:</label>
-        <select
-          value={selectedUserId}
-          onChange={(e) => setSelectedUserId(e.target.value)}
-          required
-          style={{ display: "block", marginBottom: "10px", width: "100%" }}
-        >
-          <option value="">-- Select User --</option>
-          {users.map((user) => (
-            <option key={user.id} value={user.id}>
-              {user.first_name} {user.middle_name} {user.last_name}
-            </option>
-          ))}
-        </select>
+    <div className="container mt-5">
+      <div className="card shadow">
+        <div className="card-header bg-primary text-white">
+          <h4 className="mb-0">User Menu Management</h4>
+        </div>
+        <div className="card-body">
+          <form onSubmit={handleSubmit}>
+            <div className="mb-3">
+              <label className="form-label">Select User:</label>
+              <select
+                className="form-select"
+                value={selectedUserId}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+                required
+              >
+                <option value="">-- Select User --</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.first_name} {user.middle_name} {user.last_name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        <label>Menus:</label>
-        <select
-          multiple
-          value={selectedMenuIds}
-          onChange={handleMenuChange}
-          required
-          style={{ display: "block", marginBottom: "10px", width: "100%", height: "150px" }}
-        >
-          {menus.map((menu) => (
-            <option key={menu.id} value={menu.id}>
-              {menu.title}
-            </option>
-          ))}
-        </select>
+            <div className="mb-3">
+              <label className="form-label">Select Menus:</label>
+              <select
+                className="form-select"
+                multiple
+                value={selectedMenuIds}
+                onChange={handleMenuChange}
+                required
+                style={{ height: "150px" }}
+              >
+                {menus.map((menu) => (
+                  <option key={menu.id} value={menu.id}>
+                    {menu.title}
+                  </option>
+                ))}
+              </select>
+              <div className="form-text">Hold Ctrl or Cmd to select multiple</div>
+            </div>
 
-        <label>Action:</label>
-        <select
-          value={action}
-          onChange={(e) => setAction(e.target.value)}
-          style={{ display: "block", marginBottom: "10px", width: "100%" }}
-        >
-          <option value="add">Add</option>
-          <option value="update">Update</option>
-          <option value="remove">Remove</option>
-        </select>
+            <div className="mb-3">
+              <label className="form-label">Action:</label>
+              <select
+                className="form-select"
+                value={action}
+                onChange={(e) => setAction(e.target.value)}
+              >
+                <option value="add">Add</option>
+                <option value="update">Update</option>
+                <option value="remove">Remove</option>
+              </select>
+            </div>
 
-        <button type="submit">Submit</button>
-      </form>
+            <button type="submit" className="btn btn-success w-100">
+              Submit
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }
