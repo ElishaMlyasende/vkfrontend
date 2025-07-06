@@ -7,6 +7,7 @@ const initialFormData = {
   middleName: "",
   lastName: "",
   typeOfWork: "",
+  activities:"",
   dateReceivedFromBank: "",
   dateSubmittedToRegistrar: "",
   registryName: "",
@@ -17,8 +18,7 @@ const initialFormData = {
   amount: "",
   facilitationFee: "",
   contactPerson: "",
-  remarks: "",
-  profit: "",
+  remarks: ""
 };
 
 const WorkFlow = () => {
@@ -39,7 +39,7 @@ const WorkFlow = () => {
   const fetchWorkFlow = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:9092/Client/api/all");
+      const res = await fetch("http://localhost:9092/Client/api/allClient");
       if (!res.ok) throw new Error("Failed to fetch data");
       const data = await res.json();
       setWorkData(data);
@@ -68,7 +68,7 @@ const WorkFlow = () => {
       });
 
       if (!res.ok) throw new Error("Failed to save record");
-      const updatedData = await res.json();
+      const updatedData = await res.text();
 
       if (isEditing) {
         setWorkData((prev) =>
@@ -107,7 +107,7 @@ const WorkFlow = () => {
     if (!result.isConfirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:9092/client/api/delete/${id}`, {
+      const res = await fetch(`http://localhost:9092/Client/api/delete/${id}`, {
         method: "DELETE",
       });
 
@@ -172,6 +172,7 @@ const WorkFlow = () => {
                 {Object.keys(workData[0]).map((key, index) => (
                   <th key={index}>{key.toUpperCase()}</th>
                 ))}
+                <th>Profit</th>
                 <th colSpan={2}>Actions</th>
               </tr>
             </thead>
@@ -181,6 +182,16 @@ const WorkFlow = () => {
                   {Object.values(item).map((value, idx) => (
                     <td key={idx}>{value}</td>
                   ))}
+                  <td>
+                      {(()=>{
+                        const fe=parseFloat(item.agreedFee||0);
+                        const faFee=parseFloat(item.facilitationFee||0);
+                        const Amount=parseFloat(item.amount);
+                        const Profit=Amount-(fe+faFee);
+                        return Profit.toFixed(2);
+                      })()}
+
+                   </td>
                   <td>
                     <button className="btn btn-warning btn-sm" onClick={() => handleEdit(item)}>Edit</button>
                   </td>

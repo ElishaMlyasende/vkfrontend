@@ -32,7 +32,7 @@ export default function DashboardPage() {
       {/* Navbar */}
       <nav className="navbar navbar-dark bg-black sticky-top shadow-sm bg">
         <div className="container-fluid">
-          <span className="navbar-brand fw-bold">Dashboard</span>
+          <span className="navbar-brand fw-bold">VK & COMPANY ADVOCATES</span>
           <div className="d-flex align-items-center gap-3">
             <span className="text-white small">
               <i className="bi bi-person-circle me-1"></i>

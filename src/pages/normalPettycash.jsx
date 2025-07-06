@@ -100,7 +100,7 @@ const CashPayment = () => {
 
   return (
     <div className="container mt-4">
-      <h3>Normal Petty Cash</h3>
+      <h3>Daily Cash Transactions</h3>
       <button
         className="btn btn-primary mb-3"
         onClick={() => {

@@ -3,10 +3,12 @@ import Swal from "sweetalert2";
 
 const initialFormData = {
   date: "",
-  description: "",
   amountIn: "",
   amountOut: "",
   advocateComment: "",
+  controlNumber:"",
+  mpesaFee:"",
+  clientName:""
 };
 
 const NormalPettyCash = () => {
@@ -42,8 +44,8 @@ const NormalPettyCash = () => {
     if (!result.isConfirmed) return;
 
     const url = isEditing
-      ? `http://localhost:9093/cashbook/edit/${formData.id}`
-      : "http://localhost:9093/cashbook/add";
+      ? `http://localhost:9093/cashbook/mobile/edit/${formData.id}`
+      : "http://localhost:9093/cashbook/mobile/add";
     const method = isEditing ? "PUT" : "POST";
 
     try {
@@ -87,7 +89,7 @@ const NormalPettyCash = () => {
     if (!result.isConfirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:9093/cashbook/delete/${id}`, {
+      const res = await fetch(`http://localhost:9093/cashbook/mobile/delete/${id}`, {
         method: "DELETE",
       });
 
@@ -104,7 +106,7 @@ const NormalPettyCash = () => {
   const fetchPettyCashData = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("http://localhost:9093/cashbook/all");
+      const res = await fetch("http://localhost:9093/cashbook/mobile/all");
       const text = await res.text();
 
       if (!res.ok) throw new Error(text || "Failed to load data");
@@ -120,6 +122,7 @@ const NormalPettyCash = () => {
 
   return (
     <div className="container mt-5">
+      <h3>Mobile Daily Transactions</h3>
       {showForm && (
         <form onSubmit={handleSubmit} className="mb-4">
           <div className="row">
@@ -135,14 +138,14 @@ const NormalPettyCash = () => {
                     key.includes("date")
                       ? "date"
                       : key.toLowerCase().includes("amount")
-                      ? "number"
+                      ||key.toLowerCase().includes("fee")? "number"
                       : "text"
                   }
                   name={key}
                   value={formData[key] || ""}
                   onChange={handleChange}
                   className="form-control"
-                  required={["date", "amountIn", "description"].includes(key)}
+                  required={["date", "amountIn", "description","mpesaFee","clientName"].includes(key)}
                 />
               </div>
             ))}
@@ -191,7 +194,8 @@ const NormalPettyCash = () => {
                     {(() => {
                       const inAmt = parseFloat(item.amountIn || 0);
                       const outAmt = parseFloat(item.amountOut || 0);
-                      const profit = inAmt - outAmt;
+                      const fee=parseFloat(item.mpesaFee||0);
+                      const profit = inAmt - (outAmt+fee);
                       return profit.toFixed(2);
                     })()}
                   </td>

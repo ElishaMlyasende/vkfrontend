@@ -1,7 +1,7 @@
 import DashboardPage from "./DashboardPage";
 import AddUser from "./AddUser";
 import NotFound from "./NotFound";
-import workFlow from "./workflow";
+import WorkFlow from "./workflow";
 import Permission from "./permission";
 import UserMenu from "./userMenu";
 import UserMenuForm from "./UserMenuForm";
@@ -15,7 +15,7 @@ const componentMap = {
   DashboardPage,
   AddUser,
   NotFound,
-  workFlow,
+  WorkFlow,
   Menu,
   Permission,
   UserMenu,
