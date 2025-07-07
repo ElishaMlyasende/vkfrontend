@@ -1,27 +1,45 @@
 import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
+import DataTable from "react-data-table-component";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 const initialFormData = {
   date: "",
   amountIn: "",
   amountOut: "",
   advocateComment: "",
-  controlNumber:"",
-  mpesaFee:"",
-  clientName:""
+  controlNumber: "",
+  mpesaFee: "",
+  clientName: "",
 };
 
 const NormalPettyCash = () => {
   const [pettyCashData, setPettyCashData] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [error, setError] = useState("");
-  const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(initialFormData);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     fetchPettyCashData();
   }, []);
+
+  const fetchPettyCashData = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("http://localhost:9093/cashbook/mobile/all");
+      const text = await res.text();
+      if (!res.ok) throw new Error(text || "Failed to load data");
+      const data = JSON.parse(text);
+      setPettyCashData(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -35,8 +53,6 @@ const NormalPettyCash = () => {
       text: "You want to save this item?",
       icon: "info",
       showCancelButton: true,
-      cancelButtonColor: "red",
-      confirmButtonColor: "green",
       confirmButtonText: "Yes",
       cancelButtonText: "No",
     });
@@ -46,6 +62,7 @@ const NormalPettyCash = () => {
     const url = isEditing
       ? `http://localhost:9093/cashbook/mobile/edit/${formData.id}`
       : "http://localhost:9093/cashbook/mobile/add";
+
     const method = isEditing ? "PUT" : "POST";
 
     try {
@@ -60,8 +77,8 @@ const NormalPettyCash = () => {
 
       Swal.fire("Success", message, "success");
       setFormData(initialFormData);
-      setShowForm(false);
       setIsEditing(false);
+      setShowForm(false);
       fetchPettyCashData();
     } catch (err) {
       Swal.fire("Error", err.message, "error");
@@ -80,8 +97,6 @@ const NormalPettyCash = () => {
       text: "You want to delete this item?",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: "green",
-      cancelButtonColor: "red",
       confirmButtonText: "Yes, Delete",
       cancelButtonText: "Cancel",
     });
@@ -103,123 +118,114 @@ const NormalPettyCash = () => {
     }
   };
 
-  const fetchPettyCashData = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch("http://localhost:9093/cashbook/mobile/all");
-      const text = await res.text();
+  const columns = [
+    { name: "Date", selector: (row) => row.date, sortable: true },
+    { name: "Client", selector: (row) => row.clientName, sortable: true },
+    { name: "Control No", selector: (row) => row.controlNumber, sortable: true },
+    { name: "Amount In", selector: (row) => row.amountIn },
+    { name: "Amount Out", selector: (row) => row.amountOut },
+    { name: "M-Pesa Fee", selector: (row) => row.mpesaFee },
+    {
+      name: "Profit",
+      selector: (row) => {
+        const inAmt = parseFloat(row.amountIn || 0);
+        const outAmt = parseFloat(row.amountOut || 0);
+        const fee = parseFloat(row.mpesaFee || 0);
+        return (inAmt - (outAmt + fee)).toFixed(2);
+      },
+    },
+    { name: "Comment", selector: (row) => row.advocateComment },
+    {
+      name: "Actions",
+      cell: (row) => (
+        <>
+          <button className="btn btn-warning btn-sm me-2" onClick={() => handleEdit(row)}>
+            Edit
+          </button>
+          <button className="btn btn-danger btn-sm" onClick={() => handleDelete(row.id)}>
+            Delete
+          </button>
+        </>
+      ),
+    },
+  ];
 
-      if (!res.ok) throw new Error(text || "Failed to load data");
-
-      const data = JSON.parse(text);
-      setPettyCashData(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const filteredData = pettyCashData.filter((item) =>
+    Object.values(item).join(" ").toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
-    <div className="container mt-5">
-      <h3>Mobile Daily Transactions</h3>
+    <div className="container mt-4">
+      <h3 className="text-primary text-center mb-3">Mobile Daily Transactions</h3>
+
+      <div className="text-end mb-3">
+        <button
+          className="btn btn-primary"
+          onClick={() => {
+            setShowForm(!showForm);
+            setFormData(initialFormData);
+            setIsEditing(false);
+          }}
+        >
+          {showForm ? "Cancel" : "Add PettyCash"}
+        </button>
+      </div>
+
       {showForm && (
-        <form onSubmit={handleSubmit} className="mb-4">
+        <form onSubmit={handleSubmit} className="border p-4 rounded bg-light mb-4 shadow-sm">
           <div className="row">
             {Object.keys(initialFormData).map((key, index) => (
               <div className="col-md-4 mb-3" key={index}>
-                <label>
-                  {key.replace(/([A-Z])/g, " $1").replace(/^./, (str) =>
-                    str.toUpperCase()
-                  )}
+                <label className="form-label">
+                  {key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase())}
                 </label>
                 <input
                   type={
                     key.includes("date")
                       ? "date"
-                      : key.toLowerCase().includes("amount")
-                      ||key.toLowerCase().includes("fee")? "number"
+                      : key.toLowerCase().includes("amount") || key.includes("fee")
+                      ? "number"
                       : "text"
                   }
                   name={key}
                   value={formData[key] || ""}
                   onChange={handleChange}
                   className="form-control"
-                  required={["date", "amountIn", "description","mpesaFee","clientName"].includes(key)}
+                  required={["date", "amountIn", "mpesaFee", "clientName"].includes(key)}
                 />
               </div>
             ))}
           </div>
-          <button type="submit" className="btn btn-success">
-            Save
+          <button type="submit" className="btn btn-success w-100">
+            {isEditing ? "Update" : "Save"}
           </button>
         </form>
       )}
 
-      <button
-        className="btn btn-primary mb-3"
-        onClick={() => {
-          setShowForm(!showForm);
-          setFormData(initialFormData);
-          setIsEditing(false);
-        }}
-      >
-        {showForm ? "Cancel" : "Add PettyCash"}
-      </button>
-
       {isLoading ? (
-        <p>Loading...</p>
+        <div className="alert alert-info">Loading...</div>
       ) : error ? (
-        <p className="text-danger">{error}</p>
+        <div className="alert alert-danger">{error}</div>
       ) : (
-        <div className="table-responsive">
-          <table className="table table-bordered table-hover">
-            <thead className="table-dark">
-              <tr>
-                {pettyCashData.length > 0 &&
-                  Object.keys(pettyCashData[0]).map((key, index) => (
-                    <th key={index}>{key.toUpperCase()}</th>
-                  ))}
-                <th>PROFIT</th>
-                <th colSpan={2}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pettyCashData.map((item, index) => (
-                <tr key={index}>
-                  {Object.values(item).map((val, idx) => (
-                    <td key={idx}>{val}</td>
-                  ))}
-                  <td>
-                    {(() => {
-                      const inAmt = parseFloat(item.amountIn || 0);
-                      const outAmt = parseFloat(item.amountOut || 0);
-                      const fee=parseFloat(item.mpesaFee||0);
-                      const profit = inAmt - (outAmt+fee);
-                      return profit.toFixed(2);
-                    })()}
-                  </td>
-                  <td>
-                    <button
-                      className="btn btn-warning"
-                      onClick={() => handleEdit(item)}
-                    >
-                      Edit
-                    </button>
-                  </td>
-                  <td>
-                    <button
-                      className="btn btn-danger"
-                      onClick={() => handleDelete(item.id)}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          title="Petty Cash Records"
+          columns={columns}
+          data={filteredData}
+          pagination
+          striped
+          highlightOnHover
+          responsive
+          subHeader
+          subHeaderComponent={
+            <input
+              type="text"
+              className="form-control w-50"
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          }
+        />
       )}
     </div>
   );

@@ -1,24 +1,25 @@
 import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
+import DataTable from "react-data-table-component";
+import CommentModal from "./CommentModal";
 
 const initialFormData = {
   id: null,
-  brief_facts: "",
-  case_number: "",
-  case_status: "",
-  comments: "",
-  created_at: "",
-  date_of_instruction: "",
-  defendant: "",
+  dateOfInstruction: "",
+  caseNumber: "",
   jurisdiction: "",
-  nature_of_claim: "",
   plaintiff: "",
+  defendant: "",
+  totalExposure: "",
+  natureOfClaim: "",
+  briefFacts: "",
+  caseStatus: "",
+  totalClaim: "",
+  remoteProbability: "",
+  reasonablyPossible: "",
   probable: "",
-  reasonably_possible: "",
-  remote_probability: "",
-  total_claim: "",
-  total_exposure: "",
-  updated_at: "",
+  createdAt: "",
+  updatedAt: "",
 };
 
 const CaseManagement = () => {
@@ -28,6 +29,9 @@ const CaseManagement = () => {
   const [showForm, setShowForm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState([]);
 
   useEffect(() => {
     fetchCaseData();
@@ -50,20 +54,31 @@ const CaseManagement = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    const numberFields = [
+      "totalExposure",
+      "totalClaim",
+      "remoteProbability",
+      "reasonablyPossible",
+      "probable",
+    ];
+    const val = numberFields.includes(name) ? (value === "" ? "" : Number(value)) : value;
+    if (numberFields.includes(name) && isNaN(val)) return;
+    setFormData((prev) => ({ ...prev, [name]: val }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Validate required fields if any, example:
-    if (!formData.case_number || !formData.case_status) {
-      Swal.fire("Validation error", "Case Number and Status are required", "warning");
+    if (!formData.caseNumber || !formData.caseStatus) {
+      Swal.fire("Validation error", "Case Number and Case Status are required", "warning");
       return;
     }
+
+    const payload = {
+      ...formData,
+      dateOfInstruction: formData.dateOfInstruction || null,
+      createdAt: formData.createdAt || null,
+      updatedAt: formData.updatedAt || null,
+    };
 
     const method = isEditing ? "PUT" : "POST";
     const url = isEditing
@@ -74,13 +89,10 @@ const CaseManagement = () => {
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
-        const message = await res.text();
-        throw new Error(message || "Failed to save case");
-      }
+      if (!res.ok) throw new Error(await res.text());
 
       Swal.fire("Success", `Case ${isEditing ? "updated" : "added"} successfully`, "success");
       setFormData(initialFormData);
@@ -107,12 +119,8 @@ const CaseManagement = () => {
     if (!result.isConfirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:9099/case/delete/${id}`, {
-        method: "DELETE",
-      });
-
+      const res = await fetch(`http://localhost:9099/case/delete/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete case");
-
       Swal.fire("Deleted!", "Case has been deleted.", "success");
       setCaseData((prev) => prev.filter((item) => item.id !== id));
     } catch (err) {
@@ -121,7 +129,13 @@ const CaseManagement = () => {
   };
 
   const handleEdit = (item) => {
-    setFormData(item);
+    const formatDate = (d) => (d ? d.split("T")[0] : "");
+    setFormData({
+      ...item,
+      dateOfInstruction: formatDate(item.dateOfInstruction),
+      createdAt: formatDate(item.createdAt),
+      updatedAt: formatDate(item.updatedAt),
+    });
     setIsEditing(true);
     setShowForm(true);
   };
@@ -132,6 +146,122 @@ const CaseManagement = () => {
     setShowForm(false);
   };
 
+  const handleViewComments = async (caseId) => {
+    try {
+      const res = await fetch(`http://localhost:9099/comment/${caseId}`);
+      if (!res.ok) throw new Error("Failed to fetch comments");
+      const data = await res.json();
+      setComments(data);
+      setShowComments(true);
+    } catch (err) {
+      Swal.fire("Error", err.message, "error");
+    }
+  };
+
+  const filteredCases = caseData.filter((item) =>
+    Object.values(item)
+      .join(" ")
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  );
+
+  const columns = [
+    { name: "ID", selector: (row) => row.id, sortable: true, width: "60px" },
+    {
+      name: "Case Number",
+      selector: (row) => row.caseNumber,
+      sortable: true,
+      wrap: true,
+      minWidth: "140px",
+    },
+    {
+      name: "Status",
+      selector: (row) => row.caseStatus,
+      wrap: true,
+      maxWidth: "100px",
+    },
+    {
+      name: "Plaintiff",
+      selector: (row) => row.plaintiff,
+      wrap: true,
+      maxWidth: "150px",
+    },
+    {
+      name: "Defendant",
+      selector: (row) => row.defendant,
+      wrap: true,
+      maxWidth: "150px",
+    },
+    {
+      name: "Brief Facts",
+      selector: (row) => row.briefFacts,
+      wrap: true,
+      grow: 3,
+      style: { whiteSpace: "normal" },
+      minWidth: "250px",
+    },
+    {
+      name: "Jurisdiction",
+      selector: (row) => row.jurisdiction,
+      wrap: true,
+      maxWidth: "150px",
+    },
+    {
+      name: "Nature of Claim",
+      selector: (row) => row.natureOfClaim,
+      wrap: true,
+      maxWidth: "150px",
+    },
+    { name: "Probable", selector: (row) => row.probable, width: "110px" },
+    {
+      name: "Reasonably Possible",
+      selector: (row) => row.reasonablyPossible,
+      width: "110px",
+    },
+    { name: "Remote Probability", selector: (row) => row.remoteProbability, width: "110px" },
+    { name: "Total Claim", selector: (row) => row.totalClaim, width: "110px" },
+    { name: "Total Exposure", selector: (row) => row.totalExposure, width: "110px" },
+    {
+      name: "Created At",
+      selector: (row) => (row.createdAt ? row.createdAt.split("T")[0] : ""),
+      width: "110px",
+    },
+    {
+      name: "Updated At",
+      selector: (row) => (row.updatedAt ? row.updatedAt.split("T")[0] : ""),
+      width: "110px",
+    },
+    {
+      name: "Actions",
+      cell: (row) => (
+        <>
+          <button
+            className="btn btn-warning btn-sm me-2"
+            onClick={() => handleEdit(row)}
+          >
+            Edit
+          </button>
+          <button
+            className="btn btn-danger btn-sm me-2"
+            onClick={() => handleDelete(row.id)}
+          >
+            Delete
+          </button>
+          <button
+            className="btn btn-info btn-sm"
+            onClick={() => handleViewComments(row.id)}
+          >
+            View Comments
+          </button>
+        </>
+      ),
+      width: "200px",
+      ignoreRowClick: true,
+      allowOverflow: true,
+      button: true,
+    },
+  ];
+
   return (
     <div className="container mt-4">
       <h3>Case Management</h3>
@@ -139,97 +269,67 @@ const CaseManagement = () => {
       {isLoading && <p>Loading data...</p>}
       {error && <p className="text-danger">{error}</p>}
 
-      <div className="mb-3">
+      <div className="mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
         <button className="btn btn-primary" onClick={() => setShowForm(true)}>
           Add New Case
         </button>
+        <input
+          type="text"
+          placeholder="Search cases..."
+          className="form-control w-50"
+          style={{ minWidth: "200px" }}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
+      {/* FORM */}
       {showForm && (
-        <form onSubmit={handleSubmit} className="mb-4 border p-3 rounded bg-light">
-          {/* Hidden id */}
-          <input type="hidden" name="id" value={formData.id || ""} />
+        <form
+          onSubmit={handleSubmit}
+          className="mb-4 border p-3 rounded bg-light"
+          style={{ maxWidth: "100%" }}
+        >
+          {/* ... form fields remain unchanged, same as your original form ... */}
 
-          <div className="row g-3">
-            <div className="col-md-6">
-              <label className="form-label">Brief Facts</label>
-              <textarea
-                name="brief_facts"
+          <div className="row mb-2">
+            <div className="col-md-4">
+              <label>Date of Instruction</label>
+              <input
+                type="date"
+                name="dateOfInstruction"
                 className="form-control"
-                value={formData.brief_facts}
+                value={formData.dateOfInstruction}
                 onChange={handleInputChange}
               />
             </div>
-
-            <div className="col-md-6">
-              <label className="form-label">Case Number *</label>
+            <div className="col-md-4">
+              <label>Case Number *</label>
               <input
                 type="text"
-                name="case_number"
+                name="caseNumber"
                 className="form-control"
-                value={formData.case_number}
+                value={formData.caseNumber}
                 onChange={handleInputChange}
                 required
               />
             </div>
-
-            <div className="col-md-6">
-              <label className="form-label">Case Status *</label>
+            <div className="col-md-4">
+              <label>Case Status *</label>
               <input
                 type="text"
-                name="case_status"
+                name="caseStatus"
                 className="form-control"
-                value={formData.case_status}
+                value={formData.caseStatus}
                 onChange={handleInputChange}
                 required
               />
             </div>
+          </div>
 
+          <div className="row mb-2">
             <div className="col-md-6">
-              <label className="form-label">Comments</label>
-              <textarea
-                name="comments"
-                className="form-control"
-                value={formData.comments}
-                onChange={handleInputChange}
-              />
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label">Created At</label>
-              <input
-                type="date"
-                name="created_at"
-                className="form-control"
-                value={formData.created_at ? formData.created_at.split("T")[0] : ""}
-                onChange={handleInputChange}
-              />
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label">Date Of Instruction</label>
-              <input
-                type="date"
-                name="date_of_instruction"
-                className="form-control"
-                value={formData.date_of_instruction ? formData.date_of_instruction.split("T")[0] : ""}
-                onChange={handleInputChange}
-              />
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label">Defendant</label>
-              <input
-                type="text"
-                name="defendant"
-                className="form-control"
-                value={formData.defendant}
-                onChange={handleInputChange}
-              />
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label">Jurisdiction</label>
+              <label>Jurisdiction</label>
               <input
                 type="text"
                 name="jurisdiction"
@@ -238,20 +338,8 @@ const CaseManagement = () => {
                 onChange={handleInputChange}
               />
             </div>
-
             <div className="col-md-6">
-              <label className="form-label">Nature Of Claim</label>
-              <input
-                type="text"
-                name="nature_of_claim"
-                className="form-control"
-                value={formData.nature_of_claim}
-                onChange={handleInputChange}
-              />
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label">Plaintiff</label>
+              <label>Plaintiff</label>
               <input
                 type="text"
                 name="plaintiff"
@@ -260,158 +348,151 @@ const CaseManagement = () => {
                 onChange={handleInputChange}
               />
             </div>
+          </div>
 
-            <div className="col-md-4">
-              <label className="form-label">Probable</label>
+          <div className="row mb-2">
+            <div className="col-md-6">
+              <label>Defendant</label>
               <input
                 type="text"
+                name="defendant"
+                className="form-control"
+                value={formData.defendant}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="col-md-6">
+              <label>Nature of Claim</label>
+              <input
+                type="text"
+                name="natureOfClaim"
+                className="form-control"
+                value={formData.natureOfClaim}
+                onChange={handleInputChange}
+              />
+            </div>
+          </div>
+
+          <div className="mb-2">
+            <label>Brief Facts</label>
+            <textarea
+              name="briefFacts"
+              className="form-control"
+              rows={3}
+              value={formData.briefFacts}
+              onChange={handleInputChange}
+            />
+          </div>
+
+          <div className="row mb-2">
+            <div className="col-md-4">
+              <label>Total Claim</label>
+              <input
+                type="number"
+                name="totalClaim"
+                className="form-control"
+                value={formData.totalClaim}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="col-md-4">
+              <label>Total Exposure</label>
+              <input
+                type="number"
+                name="totalExposure"
+                className="form-control"
+                value={formData.totalExposure}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="col-md-4">
+              <label>Probable</label>
+              <input
+                type="number"
                 name="probable"
                 className="form-control"
                 value={formData.probable}
                 onChange={handleInputChange}
               />
             </div>
+          </div>
 
-            <div className="col-md-4">
-              <label className="form-label">Reasonably Possible</label>
-              <input
-                type="text"
-                name="reasonably_possible"
-                className="form-control"
-                value={formData.reasonably_possible}
-                onChange={handleInputChange}
-              />
-            </div>
-
-            <div className="col-md-4">
-              <label className="form-label">Remote Probability</label>
-              <input
-                type="text"
-                name="remote_probability"
-                className="form-control"
-                value={formData.remote_probability}
-                onChange={handleInputChange}
-              />
-            </div>
-
+          <div className="row mb-2">
             <div className="col-md-6">
-              <label className="form-label">Total Claim</label>
+              <label>Reasonably Possible</label>
               <input
                 type="number"
-                step="0.01"
-                name="total_claim"
+                name="reasonablyPossible"
                 className="form-control"
-                value={formData.total_claim}
+                value={formData.reasonablyPossible}
                 onChange={handleInputChange}
               />
             </div>
-
             <div className="col-md-6">
-              <label className="form-label">Total Exposure</label>
+              <label>Remote Probability</label>
               <input
                 type="number"
-                step="0.01"
-                name="total_exposure"
+                name="remoteProbability"
                 className="form-control"
-                value={formData.total_exposure}
+                value={formData.remoteProbability}
                 onChange={handleInputChange}
               />
             </div>
+          </div>
 
+          <div className="row mb-2">
             <div className="col-md-6">
-              <label className="form-label">Updated At</label>
+              <label>Created At</label>
               <input
                 type="date"
-                name="updated_at"
+                name="createdAt"
                 className="form-control"
-                value={formData.updated_at ? formData.updated_at.split("T")[0] : ""}
+                value={formData.createdAt}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="col-md-6">
+              <label>Updated At</label>
+              <input
+                type="date"
+                name="updatedAt"
+                className="form-control"
+                value={formData.updatedAt}
                 onChange={handleInputChange}
               />
             </div>
           </div>
 
-          <div className="mt-3">
-            <button type="submit" className="btn btn-success me-2">
-              {isEditing ? "Update Case" : "Add Case"}
-            </button>
-            <button type="button" className="btn btn-secondary" onClick={handleCancel}>
-              Cancel
-            </button>
-          </div>
+          <button type="submit" className="btn btn-success me-2">
+            {isEditing ? "Update Case" : "Add Case"}
+          </button>
+          <button type="button" className="btn btn-secondary" onClick={handleCancel}>
+            Cancel
+          </button>
         </form>
       )}
 
-      <div className="table-responsive">
-        <table className="table table-bordered table-hover align-middle">
-          <thead className="table-dark small">
-            <tr>
-              <th>ID</th>
-              <th>Brief Facts</th>
-              <th>Case Number</th>
-              <th>Case Status</th>
-              <th>Comments</th>
-              <th>Created At</th>
-              <th>Date Of Instruction</th>
-              <th>Defendant</th>
-              <th>Jurisdiction</th>
-              <th>Nature Of Claim</th>
-              <th>Plaintiff</th>
-              <th>Probable</th>
-              <th>Reasonably Possible</th>
-              <th>Remote Probability</th>
-              <th>Total Claim</th>
-              <th>Total Exposure</th>
-              <th>Updated At</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {caseData.length > 0 ? (
-              caseData.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.id}</td>
-                  <td>{item.brief_facts}</td>
-                  <td>{item.case_number}</td>
-                  <td>{item.case_status}</td>
-                  <td>{item.comments}</td>
-                  <td>{item.created_at ? item.created_at.split("T")[0] : ""}</td>
-                  <td>{item.date_of_instruction ? item.date_of_instruction.split("T")[0] : ""}</td>
-                  <td>{item.defendant}</td>
-                  <td>{item.jurisdiction}</td>
-                  <td>{item.nature_of_claim}</td>
-                  <td>{item.plaintiff}</td>
-                  <td>{item.probable}</td>
-                  <td>{item.reasonably_possible}</td>
-                  <td>{item.remote_probability}</td>
-                  <td>{item.total_claim}</td>
-                  <td>{item.total_exposure}</td>
-                  <td>{item.updated_at ? item.updated_at.split("T")[0] : ""}</td>
-                  <td>
-                    <button
-                      className="btn btn-warning btn-sm me-1"
-                      onClick={() => handleEdit(item)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="btn btn-danger btn-sm"
-                      onClick={() => handleDelete(item.id)}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="18" className="text-center">
-                  No records found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div style={{ overflowX: "auto" }}>
+        <DataTable
+          columns={columns}
+          data={filteredCases}
+          pagination
+          striped
+          highlightOnHover
+          responsive={false}
+          dense
+          persistTableHead
+          fixedHeader
+          fixedHeaderScrollHeight="400px"
+          noDataComponent={<div className="text-center py-3">No records found</div>}
+        />
       </div>
+
+      <CommentModal
+        show={showComments}
+        onHide={() => setShowComments(false)}
+        comments={comments}
+      />
     </div>
   );
 };

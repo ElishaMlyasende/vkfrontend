@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import Swal from "sweetalert2";   // <-- Add this import!
+import Swal from "sweetalert2";
+import DataTable from "react-data-table-component";
 
 const initialFormData = {
   date: "",
@@ -15,6 +16,7 @@ const CashPayment = () => {
   const [showForm, setShowForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     fetchData();
@@ -57,7 +59,7 @@ const CashPayment = () => {
       setFormData(initialFormData);
       setShowForm(false);
       setIsEditing(false);
-      fetchData();  // refresh list
+      fetchData(); // refresh list
     } catch (err) {
       Swal.fire("Error", err.message, "error");
     }
@@ -98,71 +100,52 @@ const CashPayment = () => {
     }
   };
 
+  const columns = [
+    { name: "Date", selector: (row) => row.date, sortable: true },
+    { name: "Description", selector: (row) => row.description, sortable: true },
+    { name: "Amount In", selector: (row) => row.amountIn },
+    { name: "Amount Out", selector: (row) => row.amountOut },
+    { name: "Comment", selector: (row) => row.advocateComment },
+    {
+      name: "Actions",
+      cell: (row) => (
+        <>
+          <button className="btn btn-warning btn-sm me-2" onClick={() => handleEdit(row)}>
+            Edit
+          </button>
+          <button className="btn btn-danger btn-sm" onClick={() => handleDelete(row.id)}>
+            Delete
+          </button>
+        </>
+      ),
+    },
+  ];
+
+  const filteredData = cashPaymentData.filter((item) =>
+    Object.values(item).join(" ").toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div className="container mt-4">
-      <h3>Daily Cash Transactions</h3>
-      <button
-        className="btn btn-primary mb-3"
-        onClick={() => {
-          setShowForm(true);
-          setFormData(initialFormData);
-          setIsEditing(false);
-        }}
-      >
-        Add Petty Cash
-      </button>
+      <h3 className="mb-3 text-center">Daily Cash Transactions</h3>
 
-      {error && <p className="text-danger">{error}</p>}
-
-      <div className="table-responsive">
-        <table className="table table-bordered">
-          <thead className="table-dark">
-            <tr>
-              {Object.keys(initialFormData).map((key) => (
-                <th key={key}>{key.toUpperCase()}</th>
-              ))}
-              <th>EDIT</th>
-              <th>DELETE</th>
-            </tr>
-          </thead>
-          <tbody>
-            {cashPaymentData.length > 0 ? (
-              cashPaymentData.map((item) => (
-                <tr key={item.id}>
-                  {Object.keys(initialFormData).map((key) => (
-                    <td key={key}>{item[key]}</td>
-                  ))}
-                  <td>
-                    <button
-                      className="btn btn-warning btn-sm"
-                      onClick={() => handleEdit(item)}
-                    >
-                      Edit
-                    </button>
-                  </td>
-                  <td>
-                    <button
-                      className="btn btn-danger btn-sm"
-                      onClick={() => handleDelete(item.id)}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="100%" className="text-center">
-                  No data available
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="mb-3 text-end">
+        <button
+          className="btn btn-primary"
+          onClick={() => {
+            setShowForm(true);
+            setFormData(initialFormData);
+            setIsEditing(false);
+          }}
+        >
+          Add Petty Cash
+        </button>
       </div>
 
+      {error && <div className="alert alert-danger">{error}</div>}
+
       {showForm && (
-        <form onSubmit={handleSubmit} className="mt-3">
+        <form onSubmit={handleSubmit} className="border p-4 rounded mb-4 bg-light shadow-sm">
           <div className="row">
             {Object.keys(initialFormData).map((key) => (
               <div className="col-md-4 mb-2" key={key}>
@@ -185,25 +168,45 @@ const CashPayment = () => {
                 />
               </div>
             ))}
-            <div className="col-md-12 mt-2">
-              <button type="submit" className="btn btn-success">
-                {isEditing ? "Update" : "Save"}
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary ms-2"
-                onClick={() => {
-                  setShowForm(false);
-                  setFormData(initialFormData);
-                  setIsEditing(false);
-                }}
-              >
-                Cancel
-              </button>
-            </div>
+          </div>
+          <div className="mt-3">
+            <button type="submit" className="btn btn-success me-2">
+              {isEditing ? "Update" : "Save"}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                setShowForm(false);
+                setFormData(initialFormData);
+                setIsEditing(false);
+              }}
+            >
+              Cancel
+            </button>
           </div>
         </form>
       )}
+
+      {/* 🔍 Searchable Table */}
+      <DataTable
+        columns={columns}
+        data={filteredData}
+        pagination
+        striped
+        highlightOnHover
+        responsive
+        subHeader
+        subHeaderComponent={
+          <input
+            type="text"
+            className="form-control w-50"
+            placeholder="Search..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        }
+      />
     </div>
   );
 };

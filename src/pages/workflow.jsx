@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
+import DataTable from "react-data-table-component";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 // 🟢 Initial Form Data
 const initialFormData = {
@@ -7,7 +9,7 @@ const initialFormData = {
   middleName: "",
   lastName: "",
   typeOfWork: "",
-  activities:"",
+  activities: "",
   dateReceivedFromBank: "",
   dateSubmittedToRegistrar: "",
   registryName: "",
@@ -22,20 +24,15 @@ const initialFormData = {
 };
 
 const WorkFlow = () => {
-  // 🟡 State Management
   const [workData, setWorkData] = useState([]);
   const [formData, setFormData] = useState(initialFormData);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [searchText, setSearchText] = useState("");
 
-  // 🟠 Input Handler
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  // 🔵 Fetch Data
+  // 🔵 Fetch data
   const fetchWorkFlow = async () => {
     setLoading(true);
     try {
@@ -50,7 +47,16 @@ const WorkFlow = () => {
     }
   };
 
-  // 🔴 Form Submit (Add / Edit)
+  // 🟢 Handle input change
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // 🟠 Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -62,36 +68,29 @@ const WorkFlow = () => {
 
     try {
       const res = await fetch(url, {
-        method:method,
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
       if (!res.ok) throw new Error("Failed to save record");
-      const updatedData = await res.text();
 
-      if (isEditing) {
-        setWorkData((prev) =>
-          prev.map((item) => (item.id === updatedData.id ? updatedData : item))
-        );
-      } else {
-        setWorkData((prev) => [...prev, updatedData]);
-      }
-
+      Swal.fire("Success", isEditing ? "Updated!" : "Added!", "success");
       resetForm();
+      fetchWorkFlow();
     } catch (err) {
       Swal.fire("Error", err.message, "error");
     }
   };
 
-  // ⚫ Edit Button
+  // ⚫ Edit
   const handleEdit = (item) => {
     setIsEditing(true);
     setFormData(item);
     setShowForm(true);
   };
 
-  // ⚪ Delete Button
+  // ⚪ Delete
   const handleDelete = async (id) => {
     const result = await Swal.fire({
       title: "Are you sure?",
@@ -100,7 +99,6 @@ const WorkFlow = () => {
       showCancelButton: true,
       confirmButtonColor: "#d33",
       cancelButtonColor: "#3085d6",
-      cancelButtonText:"No",
       confirmButtonText: "Yes, delete it!",
     });
 
@@ -112,102 +110,116 @@ const WorkFlow = () => {
       });
 
       if (!res.ok) throw new Error("Failed to delete");
+
       setWorkData((prev) => prev.filter((item) => item.id !== id));
     } catch (err) {
       Swal.fire("Error", err.message, "error");
     }
   };
 
-  // 🔵 Reset Form 
   const resetForm = () => {
     setFormData(initialFormData);
     setIsEditing(false);
     setShowForm(false);
   };
 
-  // 🟢 Initial Fetch
   useEffect(() => {
     fetchWorkFlow();
   }, []);
 
+  // 🟡 Columns for DataTable
+  const columns = [
+    ...Object.keys(initialFormData).map((key) => ({
+      name: key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase()),
+      selector: (row) => row[key],
+      sortable: true,
+    })),
+    {
+      name: "Profit",
+      selector: (row) => {
+        const agreed = parseFloat(row.agreedFee || 0);
+        const fee = parseFloat(row.facilitationFee || 0);
+        const amount = parseFloat(row.amount || 0);
+        return (amount - (agreed + fee)).toFixed(2);
+      },
+      sortable: true,
+    },
+    {
+      name: "Actions",
+      cell: (row) => (
+        <>
+          <button className="btn btn-warning btn-sm me-2" onClick={() => handleEdit(row)}>Edit</button>
+          <button className="btn btn-danger btn-sm" onClick={() => handleDelete(row.id)}>Delete</button>
+        </>
+      ),
+    },
+  ];
+
+  const filteredData = workData.filter((item) =>
+    Object.values(item)
+      .join(" ")
+      .toLowerCase()
+      .includes(searchText.toLowerCase())
+  );
+
   return (
     <div className="container mt-5">
-      <h2 className="mb-4">Workflow Data</h2>
+      <h2 className="mb-4 text-primary text-center">Workflow Management</h2>
 
-      <button className="btn btn-primary mb-3" onClick={() => setShowForm(!showForm)}>
-        {showForm ? "Cancel" : "Add Record"}
-      </button>
+      <div className="text-end mb-3">
+        <button className="btn btn-outline-primary" onClick={() => {
+          setShowForm(!showForm);
+          if (!showForm) resetForm();
+        }}>
+          {showForm ? "Close Form" : "Add New Record"}
+        </button>
+      </div>
 
-      {/* 🔵 Form */}
       {showForm && (
-        <form onSubmit={handleSubmit} className="mb-4">
+        <form onSubmit={handleSubmit} className="border p-4 rounded mb-4 bg-light shadow-sm">
           <div className="row">
             {Object.keys(initialFormData).map((key, index) => (
               <div className="col-md-4 mb-3" key={index}>
-                <label>{key.replace(/([A-Z])/g, " $1").replace(/^./, str => str.toUpperCase())}</label>
+                <label className="form-label">
+                  {key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase())}
+                </label>
                 <input
-                  type={key.includes("date") ? "date" : key.includes("Fee") || key === "amount" || key === "profit" ? "number" : "text"}
+                  type={key.includes("date") ? "date" : key.includes("Fee") || key === "amount" ? "number" : "text"}
                   name={key}
+                  className="form-control"
                   value={formData[key]}
                   onChange={handleChange}
-                  className="form-control"
                   required={["firstName", "lastName"].includes(key)}
                 />
               </div>
             ))}
           </div>
-          <button type="submit" className="btn btn-success">Save</button>
+          <button type="submit" className="btn btn-success w-100">
+            {isEditing ? "Update Record" : "Save Record"}
+          </button>
         </form>
       )}
 
-      {/* 🔴 Table */}
-      {loading && <div className="alert alert-info">Loading...</div>}
-      {error && <div className="alert alert-danger">{error}</div>}
-
-      {!loading && !error && workData.length > 0 && (
-        <div className="table-responsive">
-          <table className="table table-bordered table-hover">
-            <thead className="table-dark">
-              <tr>
-                {Object.keys(workData[0]).map((key, index) => (
-                  <th key={index}>{key.toUpperCase()}</th>
-                ))}
-                <th>Profit</th>
-                <th colSpan={2}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {workData.map((item, index) => (
-                <tr key={index}>
-                  {Object.values(item).map((value, idx) => (
-                    <td key={idx}>{value}</td>
-                  ))}
-                  <td>
-                      {(()=>{
-                        const fe=parseFloat(item.agreedFee||0);
-                        const faFee=parseFloat(item.facilitationFee||0);
-                        const Amount=parseFloat(item.amount);
-                        const Profit=Amount-(fe+faFee);
-                        return Profit.toFixed(2);
-                      })()}
-
-                   </td>
-                  <td>
-                    <button className="btn btn-warning btn-sm" onClick={() => handleEdit(item)}>Edit</button>
-                  </td>
-                  <td>
-                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(item.id)}>Delete</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {!loading && !error && workData.length === 0 && (
-        <div className="alert alert-warning">No data available.</div>
-      )}
+      {/* 🔵 Search and DataTable */}
+      <DataTable
+        title="Workflow Records"
+        columns={columns}
+        data={filteredData}
+        pagination
+        striped
+        highlightOnHover
+        responsive
+        subHeader
+        subHeaderComponent={
+          <input
+            type="text"
+            placeholder="Search..."
+            className="form-control w-50"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+          />
+        }
+      />
     </div>
   );
 };

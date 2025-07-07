@@ -10,6 +10,7 @@ import Menu from "./Menu";
 import CashBook from "./cashbook";
 import CashPayment from "./NormalPettyCash";
 import CaseManagement from "./case";
+import ReceptionManager from "./ReceptionManager";
 
 const componentMap = {
   DashboardPage,
@@ -24,6 +25,7 @@ const componentMap = {
   CashBook,
   CashPayment,
   CaseManagement,
+  ReceptionManager
 };
 
 export default componentMap;
