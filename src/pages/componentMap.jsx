@@ -8,7 +8,7 @@ import UserMenuForm from "./UserMenuForm";
 import UserPermissionForm from "./UserPermissionForm";
 import Menu from "./Menu";
 import CashBook from "./cashbook";
-import CashPayment from "./NormalPettyCash";
+import CashPayment from "./NormalPettycash";
 import CaseManagement from "./case";
 import ReceptionManager from "./ReceptionManager";
 
