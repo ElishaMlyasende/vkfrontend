@@ -1,5 +1,5 @@
 import DashboardPage from "./DashboardPage";
-import AddUser from "./AddUser";
+import AddUser from "./addUser";
 import NotFound from "./NotFound";
 import WorkFlow from "./workflow";
 import Permission from "./permission";
