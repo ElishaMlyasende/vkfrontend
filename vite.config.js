@@ -1,11 +1,9 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
   build: {
-    rollupOptions: {
-      external: ['bootstrap/dist/css/bootstrap.min.css']
-    }
-  }
-})
+    outDir: 'build', // Optional: if you want Vite to output to `build` instead of `dist`
+  },
+});
