@@ -140,7 +140,7 @@ const WorkFlow = () => {
         const agreed = parseFloat(row.agreedFee || 0);
         const fee = parseFloat(row.facilitationFee || 0);
         const amount = parseFloat(row.amount || 0);
-        return (amount - (agreed + fee)).toFixed(2);
+        return (agreed - (amount + fee)).toFixed(2);
       },
       sortable: true,
     },
@@ -164,7 +164,7 @@ const WorkFlow = () => {
 
   return (
     <div className="container mt-5">
-      <h2 className="mb-4 text-primary text-center">Workflow Management</h2>
+      <h2 className="mb-4 text-primary text-center">Mortagage Works</h2>
 
       <div className="text-end mb-3">
         <button className="btn btn-outline-primary" onClick={() => {

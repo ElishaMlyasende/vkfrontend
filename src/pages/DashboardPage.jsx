@@ -96,11 +96,7 @@ export default function DashboardPage() {
             )}
           </main>
         </div>
-        <footer className="bg-primary text-white text-center  mt-auto shadow-sm">
-          <small>
-            &copy; {new Date().getFullYear()} VK & Company Advocates. All rights reserved.
-          </small>
-        </footer>
+        
       </div>
     </>
   );
