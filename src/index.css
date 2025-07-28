@@ -23,5 +23,9 @@ body{
   nav{
     background: #000;
   }
+  .textarea{
+    max-width: 100%;
+  }
+  
 
 

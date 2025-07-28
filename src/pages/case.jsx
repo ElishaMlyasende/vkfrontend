@@ -20,7 +20,7 @@ const initialFormData = {
   probable: "",
   createdAt: "",
   updatedAt: "",
-  document: null, // file field
+  document: null,
 };
 
 const CaseManagement = () => {
@@ -59,13 +59,7 @@ const CaseManagement = () => {
       return;
     }
 
-    const numberFields = [
-      "totalExposure",
-      "totalClaim",
-      "remoteProbability",
-      "reasonablyPossible",
-      "probable",
-    ];
+    const numberFields = ["totalExposure", "totalClaim"];
     const val = numberFields.includes(name) ? (value === "" ? "" : Number(value)) : value;
     if (numberFields.includes(name) && isNaN(val)) return;
     setFormData((prev) => ({ ...prev, [name]: val }));
@@ -82,10 +76,7 @@ const CaseManagement = () => {
     const caseModel = { ...formData };
     delete caseModel.document;
     form.append("caseModel", new Blob([JSON.stringify(caseModel)], { type: "application/json" }));
-
-    if (formData.document) {
-      form.append("document", formData.document);
-    }
+    if (formData.document) form.append("document", formData.document);
 
     const method = isEditing ? "PUT" : "POST";
     const url = isEditing
@@ -93,14 +84,8 @@ const CaseManagement = () => {
       : "http://localhost:9099/case/add";
 
     try {
-      const res = await fetch(url, {
-        method,
-        body: form,
-      });
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || "Something went wrong");
-      }
+      const res = await fetch(url, { method, body: form });
+      if (!res.ok) throw new Error(await res.text());
       Swal.fire("Success", `Case ${isEditing ? "updated" : "added"} successfully`, "success");
       setFormData(initialFormData);
       setIsEditing(false);
@@ -139,7 +124,7 @@ const CaseManagement = () => {
     const formatDate = (d) => (d ? d.split("T")[0] : "");
     setFormData({
       id: item.id ?? null,
-      dateOfInstruction: formatDate(item.dateOfInstruction) ?? "",
+      dateOfInstruction: formatDate(item.dateOfInstruction),
       caseNumber: item.caseNumber ?? "",
       jurisdiction: item.jurisdiction ?? "",
       plaintiff: item.plaintiff ?? "",
@@ -152,8 +137,8 @@ const CaseManagement = () => {
       remoteProbability: item.remoteProbability ?? "",
       reasonablyPossible: item.reasonablyPossible ?? "",
       probable: item.probable ?? "",
-      createdAt: formatDate(item.createdAt) ?? "",
-      updatedAt: formatDate(item.updatedAt) ?? "",
+      createdAt: formatDate(item.createdAt),
+      updatedAt: formatDate(item.updatedAt),
       document: null,
     });
     setIsEditing(true);
@@ -176,62 +161,62 @@ const CaseManagement = () => {
     Object.values(item).join(" ").toLowerCase().includes(search.toLowerCase())
   );
 
-  const columns = [
-    { name: "ID", selector: (row) => row.id, sortable: true, width: "60px" },
-    { name: "Case Number", selector: (row) => row.caseNumber ?? "", sortable: true },
-    { name: "Status", selector: (row) => row.caseStatus ?? "" },
-    { name: "Plaintiff", selector: (row) => row.plaintiff ?? "" },
-    { name: "Defendant", selector: (row) => row.defendant ?? "" },
-    { name: "Brief Facts", selector: (row) => row.briefFacts ?? "", wrap: true },
-    { name: "Jurisdiction", selector: (row) => row.jurisdiction ?? "" },
-    { name: "Nature of Claim", selector: (row) => row.natureOfClaim ?? "" },
+  const columns = Object.keys(initialFormData)
+    .filter((key) => key !== "document")
+    .map((key) => ({
+      name: key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase()),
+      selector: (row) => row[key] ?? "",
+      wrap: true,
+    }));
 
-    // ✅ Attachment Download Column
-    {
-      name: "Attachment",
-      cell: (row) =>
-        row.id ? (
-          <a
-            href={`http://localhost:9099/case/document/${row.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn-sm btn-outline-primary"
-            download
-          >
-            Download
-          </a>
-        ) : (
-          <span>No Attachment</span>
-        ),
-      ignoreRowClick: true,
-      allowOverflow: true,
-      button: true,
-    },
-
-    {
-      name: "Actions",
-      cell: (row) => (
-        <>
-          <button className="btn btn-warning btn-sm me-2" onClick={() => handleEdit(row)}>Edit</button>
-          <button className="btn btn-danger btn-sm me-2" onClick={() => handleDelete(row.id)}>Delete</button>
-          <button className="btn btn-info btn-sm" onClick={() => handleViewComments(row.id)}>Comments</button>
-        </>
+  columns.push({
+    name: "Attachment",
+    cell: (row) =>
+      row.id ? (
+        <a
+          href={`http://localhost:9099/case/document/${row.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn btn-sm btn-outline-primary"
+          download
+        >
+          Download
+        </a>
+      ) : (
+        <span>No Attachment</span>
       ),
-      ignoreRowClick: true,
-      allowOverflow: true,
-      button: true,
-    },
-  ];
+    ignoreRowClick: true,
+    allowOverflow: true,
+    button: true,
+  });
+
+  columns.push({
+    name: "Actions",
+    cell: (row) => (
+      <>
+        <button className="btn btn-warning btn-sm me-2" onClick={() => handleEdit(row)}>Edit</button>
+        <button className="btn btn-danger btn-sm me-2" onClick={() => handleDelete(row.id)}>Delete</button>
+        <button className="btn btn-info btn-sm" onClick={() => handleViewComments(row.id)}>Comments</button>
+      </>
+    ),
+    ignoreRowClick: true,
+    allowOverflow: true,
+    button: true,
+  });
 
   return (
     <div className="container mt-4">
       <h3>Case Management</h3>
 
-      {isLoading && <p>Loading data...</p>}
-      {error && <p className="text-danger">{error}</p>}
-
       <div className="d-flex justify-content-between mb-3">
-        <button className="btn btn-primary" onClick={() => { setFormData(initialFormData); setShowForm(true); setIsEditing(false); }}>
+        <button
+          className="btn btn-primary"
+          onClick={() => {
+            setFormData(initialFormData);
+            setShowForm(true);
+            setIsEditing(false);
+          }}
+        >
           Add New Case
         </button>
         <input
@@ -246,33 +231,37 @@ const CaseManagement = () => {
       {showForm && (
         <form onSubmit={handleSubmit} className="border p-3 rounded mb-3 bg-light">
           <div className="row">
-            <div className="col-md-4">
-              <label>Date of Instruction</label>
-              <input type="date" name="dateOfInstruction" className="form-control" value={formData.dateOfInstruction} onChange={handleInputChange} />
-            </div>
-            <div className="col-md-4">
-              <label>Case Number *</label>
-              <input type="text" name="caseNumber" className="form-control" value={formData.caseNumber} onChange={handleInputChange} required />
-            </div>
-            <div className="col-md-4">
-              <label>Case Status *</label>
-              <input type="text" name="caseStatus" className="form-control" value={formData.caseStatus} onChange={handleInputChange} required />
-            </div>
+            {Object.keys(initialFormData).map((key) => {
+              if (key === "id") return null;
+              if (key === "document") {
+                return (
+                  <div className="col-md-4 mb-3" key={key}>
+                    <label>Document</label>
+                    <input type="file" name="document" className="form-control" onChange={handleInputChange} />
+                  </div>
+                );
+              }
+              return (
+                <div className="col-md-4 mb-3" key={key}>
+                  <label>{key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase())}</label>
+                  <input
+                    type={key.toLowerCase().includes("date") ? "date" : "text"}
+                    name={key}
+                    className="form-control"
+                    value={formData[key]}
+                    onChange={handleInputChange}
+                    required={["caseNumber", "caseStatus"].includes(key)}
+                  />
+                </div>
+              );
+            })}
           </div>
-
-          <div className="mt-2">
-            <label>Document</label>
-            <input type="file" name="document" className="form-control" onChange={handleInputChange} />
-          </div>
-
-          <div className="mt-3">
-            <button className="btn btn-success me-2" type="submit">
-              {isEditing ? "Update" : "Add"} Case
-            </button>
-            <button className="btn btn-secondary" onClick={() => setShowForm(false)} type="button">
-              Cancel
-            </button>
-          </div>
+          <button type="submit" className="btn btn-success me-2">
+            {isEditing ? "Update Case" : "Add Case"}
+          </button>
+          <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>
+            Cancel
+          </button>
         </form>
       )}
 

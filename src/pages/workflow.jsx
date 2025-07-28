@@ -3,11 +3,8 @@ import Swal from "sweetalert2";
 import DataTable from "react-data-table-component";
 import "bootstrap/dist/css/bootstrap.min.css";
 
-// 🟢 Initial Form Data
 const initialFormData = {
-  firstName: "",
-  middleName: "",
-  lastName: "",
+  name: "",
   typeOfWork: "",
   activities: "",
   dateReceivedFromBank: "",
@@ -20,7 +17,7 @@ const initialFormData = {
   amount: "",
   facilitationFee: "",
   contactPerson: "",
-  remarks: ""
+  remarks: "",
 };
 
 const WorkFlow = () => {
@@ -32,7 +29,6 @@ const WorkFlow = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [searchText, setSearchText] = useState("");
 
-  // 🔵 Fetch data
   const fetchWorkFlow = async () => {
     setLoading(true);
     try {
@@ -47,7 +43,6 @@ const WorkFlow = () => {
     }
   };
 
-  // 🟢 Handle input change
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -56,14 +51,12 @@ const WorkFlow = () => {
     }));
   };
 
-  // 🟠 Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const url = isEditing
       ? `http://localhost:9092/Client/api/edit/${formData.id}`
       : "http://localhost:9092/Client/api/add";
-
     const method = isEditing ? "PUT" : "POST";
 
     try {
@@ -75,7 +68,7 @@ const WorkFlow = () => {
 
       if (!res.ok) throw new Error("Failed to save record");
 
-      Swal.fire("Success", isEditing ? "Updated!" : "Added!", "success");
+      Swal.fire("Success", isEditing ? "Record Updated" : "Record Added", "success");
       resetForm();
       fetchWorkFlow();
     } catch (err) {
@@ -83,14 +76,12 @@ const WorkFlow = () => {
     }
   };
 
-  // ⚫ Edit
   const handleEdit = (item) => {
-    setIsEditing(true);
     setFormData(item);
+    setIsEditing(true);
     setShowForm(true);
   };
 
-  // ⚪ Delete
   const handleDelete = async (id) => {
     const result = await Swal.fire({
       title: "Are you sure?",
@@ -127,7 +118,6 @@ const WorkFlow = () => {
     fetchWorkFlow();
   }, []);
 
-  // 🟡 Columns for DataTable
   const columns = [
     ...Object.keys(initialFormData).map((key) => ({
       name: key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase()),
@@ -138,39 +128,54 @@ const WorkFlow = () => {
       name: "Profit",
       selector: (row) => {
         const agreed = parseFloat(row.agreedFee || 0);
-        const fee = parseFloat(row.facilitationFee || 0);
         const amount = parseFloat(row.amount || 0);
-        return (agreed - (amount + fee)).toFixed(2);
+        const fee = parseFloat(row.facilitationFee || 0);
+        return (agreed - amount - fee).toFixed(2);
       },
       sortable: true,
+      cell: (row) => {
+        const agreed = parseFloat(row.agreedFee || 0);
+        const amount = parseFloat(row.amount || 0);
+        const fee = parseFloat(row.facilitationFee || 0);
+        const profit = agreed - amount - fee;
+        return (
+          <span style={{ color: profit < 0 ? "red" : "black", fontWeight: profit < 0 ? "bold" : "normal" }}>
+            {profit.toFixed(2)}
+          </span>
+        );
+      },
     },
     {
       name: "Actions",
       cell: (row) => (
         <>
-          <button className="btn btn-warning btn-sm me-2" onClick={() => handleEdit(row)}>Edit</button>
-          <button className="btn btn-danger btn-sm" onClick={() => handleDelete(row.id)}>Delete</button>
+          <button className="btn btn-warning btn-sm me-2" onClick={() => handleEdit(row)}>
+            Edit
+          </button>
+          <button className="btn btn-danger btn-sm" onClick={() => handleDelete(row.id)}>
+            Delete
+          </button>
         </>
       ),
     },
   ];
 
   const filteredData = workData.filter((item) =>
-    Object.values(item)
-      .join(" ")
-      .toLowerCase()
-      .includes(searchText.toLowerCase())
+    Object.values(item).join(" ").toLowerCase().includes(searchText.toLowerCase())
   );
 
   return (
     <div className="container mt-5">
-      <h2 className="mb-4 text-primary text-center">Mortagage Works</h2>
+      <h2 className="mb-4 text-primary text-center">Mortgage Works</h2>
 
       <div className="text-end mb-3">
-        <button className="btn btn-outline-primary" onClick={() => {
-          setShowForm(!showForm);
-          if (!showForm) resetForm();
-        }}>
+        <button
+          className="btn btn-outline-primary"
+          onClick={() => {
+            if (!showForm) resetForm();
+            setShowForm((prev) => !prev);
+          }}
+        >
           {showForm ? "Close Form" : "Add New Record"}
         </button>
       </div>
@@ -183,14 +188,40 @@ const WorkFlow = () => {
                 <label className="form-label">
                   {key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase())}
                 </label>
-                <input
-                  type={key.includes("date") ? "date" : key.includes("Fee") || key === "amount" ? "number" : "text"}
-                  name={key}
-                  className="form-control"
-                  value={formData[key]}
-                  onChange={handleChange}
-                  required={["firstName", "lastName"].includes(key)}
-                />
+                {key === "remarks" ? (
+                  <textarea
+                    name={key}
+                    className="form-control textarea"
+                    value={formData[key]}
+                    onChange={handleChange}
+                    rows={6}
+                    cols={10}
+                    placeholder="Enter remarks"
+                    style={{
+                      width: '100%',
+                      height: '120px',
+                      padding: '10px',
+                      fontSize: '16px',
+                      boxSizing: 'border-box',
+                      resize: 'vertical'
+                    }}
+                  />
+                ) : (
+                  <input
+                    type={
+                      key.toLowerCase().includes("date")
+                        ? "date"
+                        : ["amount", "agreedFee", "facilitationFee"].includes(key)
+                        ? "number"
+                        : "text"
+                    }
+                    name={key}
+                    className="form-control"
+                    value={formData[key]}
+                    onChange={handleChange}
+                    required={["name"].includes(key)}
+                  />
+                )}
               </div>
             ))}
           </div>
@@ -200,9 +231,8 @@ const WorkFlow = () => {
         </form>
       )}
 
-      {/* 🔵 Search and DataTable */}
       <DataTable
-        title="Workflow Records"
+        title="Mortgage Records"
         columns={columns}
         data={filteredData}
         pagination
