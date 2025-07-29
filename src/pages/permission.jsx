@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-const BASE_URL = "http://localhost:8080/api/v1/permission";
+const BASE_URL = "http://13.48.138.226:8080/api/v1/permission";
 
 function Permission() {
   const [permissions, setPermissions] = useState([]);

@@ -13,7 +13,7 @@ const CommentModal = ({ show, onClose, caseId }) => {
 
   const fetchComments = async () => {
     try {
-      const res = await fetch(`http://localhost:9099/comment/${caseId}`);
+      const res = await fetch(`http://13.48.138.226:9099/comment/${caseId}`);
       if (!res.ok) throw new Error("Failed to load comments");
       const data = await res.json();
       setComments(Array.isArray(data) ? data : [data]);
@@ -30,8 +30,8 @@ const CommentModal = ({ show, onClose, caseId }) => {
 
     const method = editId ? "PUT" : "POST";
     const url = editId
-      ? `http://localhost:9099/comment/add/${caseId}`
-      : `http://localhost:9099/comment/add/${caseId}`;
+      ? `http://13.48.138.226:9099/comment/add/${caseId}`
+      : `http://13.48.138.226:9099/comment/add/${caseId}`;
 
     try {
       const res = await fetch(url, {
@@ -60,7 +60,7 @@ const CommentModal = ({ show, onClose, caseId }) => {
     if (!confirm.isConfirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:9099/comment/${id}`, {
+      const res = await fetch(`http://13.48.138.226:9099/comment/${id}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Failed to delete");

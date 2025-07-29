@@ -32,7 +32,7 @@ const WorkFlow = () => {
   const fetchWorkFlow = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:9092/Client/api/allClient");
+      const res = await fetch("http://13.48.138.226:9092/Client/api/allClient");
       if (!res.ok) throw new Error("Failed to fetch data");
       const data = await res.json();
       setWorkData(data);
@@ -55,8 +55,8 @@ const WorkFlow = () => {
     e.preventDefault();
 
     const url = isEditing
-      ? `http://localhost:9092/Client/api/edit/${formData.id}`
-      : "http://localhost:9092/Client/api/add";
+      ? `http://13.48.138.226:9092/Client/api/edit/${formData.id}`
+      : "http://13.48.138.226:9092/Client/api/add";
     const method = isEditing ? "PUT" : "POST";
 
     try {
@@ -96,7 +96,7 @@ const WorkFlow = () => {
     if (!result.isConfirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:9092/Client/api/delete/${id}`, {
+      const res = await fetch(`http://13.48.138.226:9092/Client/api/delete/${id}`, {
         method: "DELETE",
       });
 

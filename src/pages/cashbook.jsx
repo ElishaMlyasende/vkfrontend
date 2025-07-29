@@ -29,7 +29,7 @@ const NormalPettyCash = () => {
   const fetchPettyCashData = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("http://localhost:9093/cashbook/mobile/all");
+      const res = await fetch("http://13.48.138.226:9093/cashbook/mobile/all");
       const text = await res.text();
       if (!res.ok) throw new Error(text || "Failed to load data");
       const data = JSON.parse(text);
@@ -60,8 +60,8 @@ const NormalPettyCash = () => {
     if (!result.isConfirmed) return;
 
     const url = isEditing
-      ? `http://localhost:9093/cashbook/mobile/edit/${formData.id}`
-      : "http://localhost:9093/cashbook/mobile/add";
+      ? `http://13.48.138.226:9093/cashbook/mobile/edit/${formData.id}`
+      : "http://13.48.138.226:9093/cashbook/mobile/add";
 
     const method = isEditing ? "PUT" : "POST";
 
@@ -104,7 +104,7 @@ const NormalPettyCash = () => {
     if (!result.isConfirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:9093/cashbook/mobile/delete/${id}`, {
+      const res = await fetch(`http://13.48.138.226:9093/cashbook/mobile/delete/${id}`, {
         method: "DELETE",
       });
 

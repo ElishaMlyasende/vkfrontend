@@ -18,7 +18,7 @@ const ReceptionManager = () => {
   const [showForm, setShowForm] = useState(false);
   const [searchText, setSearchText] = useState("");
 
-  const apiUrl = "http://localhost:9092/api/reception";
+  const apiUrl = "http://13.48.138.226:9092/api/reception";
 
   useEffect(() => {
     fetchVisitors();

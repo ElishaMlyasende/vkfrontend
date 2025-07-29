@@ -27,7 +27,7 @@ const AddUser = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch("http://localhost:8082/api/v1/user/all");
+      const res = await fetch("http://13.48.138.226:8082/api/v1/user/all");
       const text = await res.text();
       const data = JSON.parse(text);
       if (Array.isArray(data)) {
@@ -62,8 +62,8 @@ const AddUser = () => {
 
     const method = isEditing ? "PUT" : "POST";
     const url = isEditing
-      ? `http://localhost:8082/api/v1/user/Edit/${editingId}`
-      : "http://localhost:8082/api/v1/user/add";
+      ? `http://13.48.138.226:8082/api/v1/user/Edit/${editingId}`
+      : "http://13.48.138.226:8082/api/v1/user/add";
 
     const payload = { ...formData };
     if (isEditing) delete payload.password;
@@ -109,7 +109,7 @@ const AddUser = () => {
     if (!result.isConfirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:8082/api/v1/user/remove/${id}`, {
+      const res = await fetch(`http://13.48.138.226:8082/api/v1/user/remove/${id}`, {
         method: "DELETE",
       });
 

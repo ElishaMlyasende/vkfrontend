@@ -24,7 +24,7 @@ const CashPayment = () => {
 
   const fetchData = async () => {
     try {
-      const res = await fetch("http://localhost:9093/cashbook/all");
+      const res = await fetch("http://13.48.138.226:9093/cashbook/all");
       const text = await res.text();
       if (!res.ok) throw new Error(text);
       const data = JSON.parse(text);
@@ -41,8 +41,8 @@ const CashPayment = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const url = isEditing
-      ? `http://localhost:9093/cashbook/edit/${formData.id}`
-      : "http://localhost:9093/cashbook/add";
+      ? `http://13.48.138.226:9093/cashbook/edit/${formData.id}`
+      : "http://13.48.138.226:9093/cashbook/add";
     const method = isEditing ? "PUT" : "POST";
 
     try {
@@ -86,7 +86,7 @@ const CashPayment = () => {
     if (!result.isConfirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:9093/cashbook/delete/${id}`, {
+      const res = await fetch(`http://13.48.138.226:9093/cashbook/delete/${id}`, {
         method: "DELETE",
       });
 

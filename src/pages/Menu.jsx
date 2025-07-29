@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-const BASE_URL = "http://localhost:8080/menu";
+const BASE_URL = "http://13.48.138.226:8080/menu";
 
 function Menu() {
   const [menus, setMenus] = useState([]);

@@ -41,7 +41,7 @@ const CaseManagement = () => {
   const fetchCaseData = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("http://localhost:9099/case/all");
+      const res = await fetch("http://13.48.138.226:9099/case/all");
       if (!res.ok) throw new Error("Failed to fetch cases");
       const data = await res.json();
       setCaseData(data);
@@ -80,8 +80,8 @@ const CaseManagement = () => {
 
     const method = isEditing ? "PUT" : "POST";
     const url = isEditing
-      ? `http://localhost:9099/case/edit/${formData.id}`
-      : "http://localhost:9099/case/add";
+      ? `http://13.48.138.226:9099/case/edit/${formData.id}`
+      : "http://13.48.138.226:9099/case/add";
 
     try {
       const res = await fetch(url, { method, body: form });
@@ -111,7 +111,7 @@ const CaseManagement = () => {
     if (!result.isConfirmed) return;
 
     try {
-      const res = await fetch(`http://localhost:9099/case/remove/${id}`, { method: "DELETE" });
+      const res = await fetch(`http://13.48.138.226:9099/case/remove/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete case");
       Swal.fire("Deleted!", "Case has been deleted.", "success");
       setCaseData((prev) => prev.filter((item) => item.id !== id));
@@ -147,7 +147,7 @@ const CaseManagement = () => {
 
   const handleViewComments = async (caseId) => {
     try {
-      const res = await fetch(`http://localhost:9099/comment/${caseId}`);
+      const res = await fetch(`http://13.48.138.226:9099/comment/${caseId}`);
       if (!res.ok) throw new Error("Failed to fetch comments");
       const data = await res.json();
       setComments(data);
@@ -174,7 +174,7 @@ const CaseManagement = () => {
     cell: (row) =>
       row.id ? (
         <a
-          href={`http://localhost:9099/case/document/${row.id}`}
+          href={`http://13.48.138.226:9099/case/document/${row.id}`}
           target="_blank"
           rel="noopener noreferrer"
           className="btn btn-sm btn-outline-primary"
