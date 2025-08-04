@@ -5,7 +5,7 @@ function LoginPage() {
   const [error, setError] = useState("");
 
   const loginUser = async (username, password) => {
-    const response = await fetch("http://13.48.138.226:8086/auth/login", {
+    const response = await fetch("http://localhost:8086/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),

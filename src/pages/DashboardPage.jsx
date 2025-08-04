@@ -30,7 +30,7 @@ export default function DashboardPage() {
   return (
     <>
       {/* Navbar */}
-      <nav className="navbar navbar-dark bg-primary sticky-top shadow bg">
+      <nav className="navbar navbar-dark flex min-h-screen bg-primary sticky-top shadow bg">
         <div className="container-fluid">
           <span className="navbar-brand fw-bold">VK & COMPANY ADVOCATES</span>
           <div className="d-flex align-items-center gap-3">
@@ -46,7 +46,7 @@ export default function DashboardPage() {
       </nav>
 
       {/* Body */}
-      <div className="container-fluid shadow vh-100 bg-white d-flex flex-column min-vh-100">
+      <div className="container-fluid shadow min-h-screen bg-white d-flex flex-column">
         <div className="row">
           {/* Sidebar */}
           <nav
@@ -75,7 +75,7 @@ export default function DashboardPage() {
           </nav>
 
           {/* Main content */}
-          <main className="col-md-9 ms-sm-auto col-lg-10 shadow vh-100  bg-white px-md-4 py-4">
+          <main className="col-md-9 ms-sm-auto col-lg-10 shadow min-h-screen  bg-white px-md-4 py-4">
           <div>
 
 

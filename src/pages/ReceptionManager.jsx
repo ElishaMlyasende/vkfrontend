@@ -17,8 +17,10 @@ const ReceptionManager = () => {
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const [Activities,setActivities]=useState(false);
+  const [selectedUser,setSelectedUser]=useState("");
 
-  const apiUrl = "http://13.48.138.226:9092/api/reception";
+  const apiUrl = "http://localhost:9092/api/reception";
 
   useEffect(() => {
     fetchVisitors();
@@ -66,6 +68,13 @@ const ReceptionManager = () => {
       console.error("Submit Error:", error);
     }
   };
+  const handleSubmitActivity=()=>{
+    Swal.fire({
+      title:"Activity Submitted",
+      text:"Activity has been added successfully",
+      icon:"success"
+    })
+  }
 
   const handleEdit = (visitor) => {
     setFormData(visitor);
@@ -162,12 +171,14 @@ const ReceptionManager = () => {
           >
             Delete
           </button>
+          <button className="btn btn-info btn-sm" onClick={()=>setActivities(!Activities)}>Activities</button>
         </>
       ),
     },
   ];
 
   return (
+   
     <div className="container my-5">
       <h2 className="mb-4 text-center text-primary">Reception Visitors</h2>
 
@@ -185,6 +196,55 @@ const ReceptionManager = () => {
           {showForm ? "Close Form" : "Add Visitor"}
         </button>
       </div>
+      {Activities && (
+      <div>
+        <h3>Add Activities Here</h3>
+        <form onSubmit={handleSubmitActivity} className="mb-5 rounded p-4 shadow-sm bg-light">
+          <div className="form-group">
+            <label className="form-label">Activity</label>
+            <input className="form-control" placeholder="Enter Activity Here" name="Activity" type="text"/>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Amount</label>
+            <input className="form-control" placeholder="Enter Activity Here" name="Amount" type="number"/>
+            <select
+              name="user"
+              value={selectedUser}
+              onChange={(e) => setSelectedUser(e.target.value)}
+             className="border p-2 rounded form-select w-50"
+             >
+            <option value="">Select a user</option>
+            <option value="john">john</option>
+       </select>
+          </div>
+          <div className="flex justify-between">
+            <button className="btn btn-success btn-sm">
+              submit
+            </button>
+            <button className="btn btn-danger btn-sm" onClick={()=>setActivities(!Activities)}>Cancel</button>
+
+          </div>
+
+        </form>
+        <table className="table table-bordered table-striped table-responsive bg-light shadow-sm">
+          <thead className="bg-light">
+            <tr>
+            <th>ACtivity</th>
+            <th>Amount</th>
+            <th>Action</th>
+            </tr>
+            
+          </thead>
+          <tbody>
+            <tr>
+              <td>kusaini mkataba</td>
+              <td>4000</td>
+              <td>delete</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>)
+    }
 
       {showForm && (
         <form

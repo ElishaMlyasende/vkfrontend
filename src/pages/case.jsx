@@ -3,6 +3,7 @@ import Swal from "sweetalert2";
 import DataTable from "react-data-table-component";
 import CommentModal from "./CommentModal";
 
+
 const initialFormData = {
   id: null,
   dateOfInstruction: "",
@@ -32,7 +33,7 @@ const CaseManagement = () => {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [showComments, setShowComments] = useState(false);
-  const [comments, setComments] = useState([]);
+  const [activeCase, setActiveCase] = useState(null);
 
   useEffect(() => {
     fetchCaseData();
@@ -41,7 +42,7 @@ const CaseManagement = () => {
   const fetchCaseData = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("http://13.48.138.226:9099/case/all");
+      const res = await fetch("http://localhost:9099/case/all");
       if (!res.ok) throw new Error("Failed to fetch cases");
       const data = await res.json();
       setCaseData(data);
@@ -60,7 +61,9 @@ const CaseManagement = () => {
     }
 
     const numberFields = ["totalExposure", "totalClaim"];
-    const val = numberFields.includes(name) ? (value === "" ? "" : Number(value)) : value;
+    const val = numberFields.includes(name)
+      ? value === "" ? "" : Number(value)
+      : value;
     if (numberFields.includes(name) && isNaN(val)) return;
     setFormData((prev) => ({ ...prev, [name]: val }));
   };
@@ -80,8 +83,8 @@ const CaseManagement = () => {
 
     const method = isEditing ? "PUT" : "POST";
     const url = isEditing
-      ? `http://13.48.138.226:9099/case/edit/${formData.id}`
-      : "http://13.48.138.226:9099/case/add";
+      ? `http://localhost:9099/case/edit/${formData.id}`
+      : "http://localhost:9099/case/add";
 
     try {
       const res = await fetch(url, { method, body: form });
@@ -111,7 +114,7 @@ const CaseManagement = () => {
     if (!result.isConfirmed) return;
 
     try {
-      const res = await fetch(`http://13.48.138.226:9099/case/remove/${id}`, { method: "DELETE" });
+      const res = await fetch(`http://localhost:9099/case/remove/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete case");
       Swal.fire("Deleted!", "Case has been deleted.", "success");
       setCaseData((prev) => prev.filter((item) => item.id !== id));
@@ -145,16 +148,9 @@ const CaseManagement = () => {
     setShowForm(true);
   };
 
-  const handleViewComments = async (caseId) => {
-    try {
-      const res = await fetch(`http://13.48.138.226:9099/comment/${caseId}`);
-      if (!res.ok) throw new Error("Failed to fetch comments");
-      const data = await res.json();
-      setComments(data);
-      setShowComments(true);
-    } catch (err) {
-      Swal.fire("Error", err.message, "error");
-    }
+  const handleViewComments = (caseItem) => {
+    setActiveCase(caseItem);
+    setShowComments(true);
   };
 
   const filteredCases = caseData.filter((item) =>
@@ -174,7 +170,7 @@ const CaseManagement = () => {
     cell: (row) =>
       row.id ? (
         <a
-          href={`http://13.48.138.226:9099/case/document/${row.id}`}
+          href={`http://localhost:9099/case/document/${row.id}`}
           target="_blank"
           rel="noopener noreferrer"
           className="btn btn-sm btn-outline-primary"
@@ -196,7 +192,7 @@ const CaseManagement = () => {
       <>
         <button className="btn btn-warning btn-sm me-2" onClick={() => handleEdit(row)}>Edit</button>
         <button className="btn btn-danger btn-sm me-2" onClick={() => handleDelete(row.id)}>Delete</button>
-        <button className="btn btn-info btn-sm" onClick={() => handleViewComments(row.id)}>Comments</button>
+        <button className="btn btn-info btn-sm" onClick={() => handleViewComments(row)}>Comments</button>
       </>
     ),
     ignoreRowClick: true,
@@ -265,17 +261,27 @@ const CaseManagement = () => {
         </form>
       )}
 
-      <DataTable
-        columns={columns}
-        data={filteredCases}
-        pagination
-        highlightOnHover
-        fixedHeader
-        fixedHeaderScrollHeight="400px"
-        noDataComponent="No records found"
-      />
+      {isLoading ? (
+        <p>Loading...</p>
+      ) : error ? (
+        <p className="text-danger">{error}</p>
+      ) : (
+        <DataTable
+          columns={columns}
+          data={filteredCases}
+          pagination
+          highlightOnHover
+          fixedHeader
+          fixedHeaderScrollHeight="400px"
+          noDataComponent="No records found"
+        />
+      )}
 
-      <CommentModal show={showComments} onHide={() => setShowComments(false)} comments={comments} />
+      <CommentModal
+        show={showComments}
+        onHide={() => setShowComments(false)}
+        activeCase={activeCase}
+      />
     </div>
   );
 };

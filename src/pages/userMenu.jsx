@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 
-const BASE_URL = "http://13.48.138.226:8082/api/v1/user/user_menu";
-const USERS_URL = "http://13.48.138.226:8082/api/v1/user/all";
-const MENUS_URL = "http://13.48.138.226:8082/menu/all";
+const BASE_URL = "http://localhost:8082/api/v1/user/user_menu";
+const USERS_URL = "http://localhost:8082/api/v1/user/all";
+const MENUS_URL = "http://localhost:8082/menu/all";
 
 function UserMenu() {
   const [users, setUsers] = useState([]);

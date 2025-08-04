@@ -1,130 +1,176 @@
-// CommentModal.js
-import React, { useEffect, useState } from "react";
-import Swal from "sweetalert2";
+import React, { Component } from "react";
+import SockJS from "sockjs-client";
+import { over } from "stompjs";
 
-const CommentModal = ({ show, onClose, caseId }) => {
-  const [comments, setComments] = useState([]);
-  const [commentText, setCommentText] = useState("");
-  const [editId, setEditId] = useState(null);
+// Helper function to decode JWT and extract payload
+function parseJwt(token) {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    console.error("Invalid token", e);
+    return null;
+  }
+}
 
-  useEffect(() => {
-    if (show && caseId) fetchComments();
-  }, [show, caseId]);
+class CommentModal extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      comments: [],
+      newComment: "",
+      stompClient: null
+    };
+  }
 
-  const fetchComments = async () => {
-    try {
-      const res = await fetch(`http://13.48.138.226:9099/comment/${caseId}`);
-      if (!res.ok) throw new Error("Failed to load comments");
-      const data = await res.json();
-      setComments(Array.isArray(data) ? data : [data]);
-    } catch (err) {
-      Swal.fire("Error", err.message, "error");
+  componentDidMount() {
+    if (this.props.activeCase?.id) {
+      this.connectWebSocket();
+    }
+  }
+
+  componentDidUpdate(prevProps) {
+    if (
+      this.props.activeCase?.id &&
+      prevProps.activeCase?.id !== this.props.activeCase.id
+    ) {
+      this.disconnectWebSocket();
+      this.setState({ comments: [] }, () => {
+        this.connectWebSocket();
+      });
+    }
+  }
+
+  componentWillUnmount() {
+    this.disconnectWebSocket();
+  }
+
+  connectWebSocket = () => {
+    const { activeCase } = this.props;
+    if (!activeCase?.id) return;
+
+    const socket = new SockJS("http://localhost:9099/ws");
+    const stompClient = over(socket);
+
+    stompClient.connect({}, () => {
+      console.log("✅ Connected to WebSocket");
+
+      // Subscribe to comments for this case
+      stompClient.subscribe(
+        `/topic/comments/${activeCase.id}`,
+        (message) => {
+          if (message.body) {
+            const comment = JSON.parse(message.body);
+            this.setState((prev) => ({
+              comments: [...prev.comments, comment]
+            }));
+          }
+        }
+      );
+
+      // Load existing comments from REST API
+      fetch(`http://localhost:9099/api/comments/${activeCase.id}`)
+        .then((res) => res.json())
+        .then((data) => this.setState({ comments: data }))
+        .catch((err) => console.error("❌ Failed to fetch comments", err));
+    });
+
+    this.setState({ stompClient });
+  };
+
+  disconnectWebSocket = () => {
+    if (this.state.stompClient) {
+      this.state.stompClient.disconnect(() => {
+        console.log("🔌 WebSocket Disconnected");
+      });
+      this.setState({ stompClient: null });
     }
   };
 
-  const handleSave = async () => {
-    if (!commentText.trim()) {
-      Swal.fire("Warning", "Please write a comment", "warning");
+  sendComment = () => {
+    const { newComment, stompClient } = this.state;
+    const { activeCase } = this.props;
+
+    if (!newComment.trim()) return;
+
+    if (!stompClient || !stompClient.connected) {
+      console.warn("⚠ WebSocket is not connected.");
       return;
     }
 
-    const method = editId ? "PUT" : "POST";
-    const url = editId
-      ? `http://13.48.138.226:9099/comment/add/${caseId}`
-      : `http://13.48.138.226:9099/comment/add/${caseId}`;
+    // Get token from localStorage
+    const token = localStorage.getItem('token');
+    const decoded = token ? parseJwt(token) : null;
+    const loggedInUser = decoded?.sub || "Anonymous";
 
-    try {
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: editId, message: commentText }),
-      });
+    const commentObj = {
+      caseId: activeCase.id.toString(),
+      message: newComment,
+      Username: loggedInUser
+    };
 
-      if (!res.ok) throw new Error("Failed to save comment");
-      await Swal.fire("Success", `Comment ${editId ? "updated" : "added"}`, "success");
-      setCommentText("");
-      setEditId(null);
-      fetchComments();
-    } catch (err) {
-      Swal.fire("Error", err.message, "error");
-    }
+    stompClient.send(
+      `/app/chat.message/${activeCase.id}`,
+      {},
+      JSON.stringify(commentObj)
+    );
+
+    this.setState({ newComment: "" });
   };
 
-  const handleDelete = async (id) => {
-    const confirm = await Swal.fire({
-      title: "Delete Comment?",
-      text: "This action is irreversible",
-      icon: "warning",
-      showCancelButton: true,
-    });
-    if (!confirm.isConfirmed) return;
+  render() {
+    const { show, onHide, activeCase } = this.props;
+    const { comments, newComment } = this.state;
 
-    try {
-      const res = await fetch(`http://13.48.138.226:9099/comment/${id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("Failed to delete");
-      Swal.fire("Deleted", "Comment deleted", "success");
-      fetchComments();
-    } catch (err) {
-      Swal.fire("Error", err.message, "error");
-    }
-  };
+    if (!show) return null;
 
-  const handleEdit = (comment) => {
-    setEditId(comment.id);
-    setCommentText(comment.message);
-  };
-
-  if (!show) return null;
-
-  return (
-    <div className="modal d-block" style={{ background: "rgba(0,0,0,0.5)" }}>
-      <div className="modal-dialog modal-lg">
-        <div className="modal-content">
-          <div className="modal-header">
-            <h5 className="modal-title">Comments for Case ID: {caseId}</h5>
-            <button className="btn-close" onClick={onClose}></button>
-          </div>
-          <div className="modal-body">
-            <textarea
-              className="form-control mb-3"
-              rows="3"
-              placeholder="Write your comment..."
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-            />
-            <button className="btn btn-primary me-2" onClick={handleSave}>
-              {editId ? "Update Comment" : "Add Comment"}
-            </button>
-            <button className="btn btn-secondary" onClick={() => {
-              setEditId(null);
-              setCommentText("");
-            }}>
-              Clear
-            </button>
-
-            <hr />
-            <ul className="list-group">
-              {comments.map((c) => (
-                <li key={c.id} className="list-group-item d-flex justify-content-between align-items-center">
-                  <span>{c.message}</span>
-                  <div>
-                    <button className="btn btn-sm btn-warning me-2" onClick={() => handleEdit(c)}>
-                      Edit
-                    </button>
-                    <button className="btn btn-sm btn-danger" onClick={() => handleDelete(c.id)}>
-                      Delete
-                    </button>
+    return (
+      <div className="modal show fade" style={{ display: "block" }}>
+        <div className="modal-dialog modal-lg">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h5>Comments for Case {activeCase?.caseNumber || "N/A"}</h5>
+              <button type="button" className="btn-close" onClick={onHide}></button>
+            </div>
+            <div className="modal-body">
+              {comments.length > 0 ? (
+                comments.map((c, index) => (
+                  <div key={index} className="border p-2 mb-2 rounded">
+                    <strong>{c.Username || "User"}:</strong>
+                    <p>{c.message || c.comment}</p>
                   </div>
-                </li>
-              ))}
-            </ul>
+                ))
+              ) : (
+                <p>No comments available</p>
+              )}
+            </div>
+            <div className="modal-footer">
+              <input
+                type="text"
+                className="form-control me-2"
+                placeholder="Write a comment..."
+                value={newComment}
+                onChange={(e) => this.setState({ newComment: e.target.value })}
+              />
+              <button className="btn btn-primary" onClick={this.sendComment}>
+                Send
+              </button>
+              <button className="btn btn-secondary" onClick={onHide}>
+                Close
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  }
+}
 
 export default CommentModal;

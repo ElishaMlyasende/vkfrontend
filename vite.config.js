@@ -4,6 +4,9 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   build: {
-    outDir: 'build',  // Change output folder to 'build'
+    outDir: 'build', // Change output folder to 'build'
+  },
+  define: {
+    global: 'window',  // Fix "global is not defined" for sockjs-client
   },
 });

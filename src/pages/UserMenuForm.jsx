@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const BASE_URL = "http://13.48.138.226:8080/api/v1/user/user_menu";
+const BASE_URL = "http://localhost:8080/api/v1/user/user_menu";
 
 function UserMenuForm() {
   const [userId, setUserId] = useState("");

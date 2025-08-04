@@ -28,11 +28,12 @@ const WorkFlow = () => {
   const [showForm, setShowForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const[showActivities, setShowActivities]=useState(false);
 
   const fetchWorkFlow = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://13.48.138.226:9092/Client/api/allClient");
+      const res = await fetch("http://localhost:9092/Client/api/allClient");
       if (!res.ok) throw new Error("Failed to fetch data");
       const data = await res.json();
       setWorkData(data);
@@ -55,8 +56,8 @@ const WorkFlow = () => {
     e.preventDefault();
 
     const url = isEditing
-      ? `http://13.48.138.226:9092/Client/api/edit/${formData.id}`
-      : "http://13.48.138.226:9092/Client/api/add";
+      ? `http://localhost:9092/Client/api/edit/${formData.id}`
+      : "http://localhost:9092/Client/api/add";
     const method = isEditing ? "PUT" : "POST";
 
     try {
@@ -81,6 +82,14 @@ const WorkFlow = () => {
     setIsEditing(true);
     setShowForm(true);
   };
+  const handleActivitySubmit=()=>{
+    Swal.fire({
+      title:"Aactivity submitted",
+      text:"Youre Request saccessfully submitted",
+      icon:"info"
+
+    })
+  }
 
   const handleDelete = async (id) => {
     const result = await Swal.fire({
@@ -96,7 +105,7 @@ const WorkFlow = () => {
     if (!result.isConfirmed) return;
 
     try {
-      const res = await fetch(`http://13.48.138.226:9092/Client/api/delete/${id}`, {
+      const res = await fetch(`http://localhost:9092/Client/api/delete/${id}`, {
         method: "DELETE",
       });
 
@@ -155,6 +164,7 @@ const WorkFlow = () => {
           <button className="btn btn-danger btn-sm" onClick={() => handleDelete(row.id)}>
             Delete
           </button>
+          <button className="btn btn-info btn-sm me-2 "onClick={()=>setShowActivities(!showActivities)}>Activities</button>
         </>
       ),
     },
@@ -179,6 +189,77 @@ const WorkFlow = () => {
           {showForm ? "Close Form" : "Add New Record"}
         </button>
       </div>
+  
+      {showActivities &&(<div>
+              <h3>Add Client Activities Here</h3>
+              <form onSubmit={handleActivitySubmit}className="border p-4 rounded mb-4 bg-light shadow-sm">
+                <div className="form-group"><label className="form-label">Activity </label>
+                <input type="text"name="Activity" placeholder="Enter Activity" className="form-control"/>
+               </div>
+               <div className="form-group">
+                <label className="form-label">Amount Charged</label>
+                <input className="form-control" placeholder="Enter amount" type="number" name="Amount"/>
+               </div>
+               <div className="flex justify-between mt-4 w-full">
+                <button style={{
+                     backgroundColor: "green",
+                     color: "white",
+                     border: "none", // ← haina border
+                     borderRadius: "8px",
+                    cursor: "pointer",
+                    fontSize: "16px",
+                     fontWeight: "600",
+
+                }}>
+                  Submit
+                </button>
+               <button
+                     onClick={() => setShowActivities(!showActivities)}
+                      style={{
+                                 backgroundColor: "red",
+                                 color: "white",
+                                 border: "none", // ← haina border
+                                 borderRadius: "8px",
+                                cursor: "pointer",
+                                fontSize: "16px",
+                                 fontWeight: "600",
+                                 margin:"50px"
+                                 
+                       }}
+                        >
+                          Cancel
+                          </button>
+
+               </div>
+               
+
+                
+              </form>
+             
+                <h4>Activities</h4>
+                <table className="table shadow-sm bg-light table-bordered mb-70 table-responsive table-striped text-center">
+                  <thead className="table-dark">
+                    <tr>
+                      <th>Activity</th>
+                      <th>Amount</th>
+                      <th>Action</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>elisha</td>
+                      <td>300</td>
+                      <td>delete</td>
+                    </tr>
+                    
+
+                  </tbody>
+                </table>
+              
+
+              </div>)
+             
+              }
 
       {showForm && (
         <form onSubmit={handleSubmit} className="border p-4 rounded mb-4 bg-light shadow-sm">
