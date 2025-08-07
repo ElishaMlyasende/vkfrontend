@@ -2,11 +2,11 @@ import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import DataTable from "react-data-table-component";
 import "bootstrap/dist/css/bootstrap.min.css";
+import { Client } from "stompjs";
 
 const initialFormData = {
   name: "",
   typeOfWork: "",
-  activities: "",
   dateReceivedFromBank: "",
   dateSubmittedToRegistrar: "",
   registryName: "",
@@ -14,13 +14,12 @@ const initialFormData = {
   submissionToBankAndOfficer: "",
   agreedFee: "",
   controlNumber: "",
-  amount: "",
-  facilitationFee: "",
   contactPerson: "",
   remarks: "",
 };
 
 const WorkFlow = () => {
+  const[MortageAmount,setMortageAmount]=useState(null);
   const [workData, setWorkData] = useState([]);
   const [formData, setFormData] = useState(initialFormData);
   const [loading, setLoading] = useState(false);
@@ -29,7 +28,26 @@ const WorkFlow = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [searchText, setSearchText] = useState("");
   const[showActivities, setShowActivities]=useState(false);
+  const[editingMortage,isEditingMortage]=useState(false);
+  const[ActivityData,setActivityData]=useState([]);
+  const[ActivityId, setActivityId]=useState(null);
+  const[InitialFormDataActivity, setInitialFormDataActivity]=useState({activity:"",amount:"",facilitationFee:""});
 
+  const FetchActivityData=async(ActivityId)=>{
+    try{
+      const res=await fetch(`http://localhost:9092/Client/Activities/all/${ActivityId}`)
+      if(res.ok){
+        const data= await res.json();
+        setActivityData(data);
+        setShowActivities(true); // 
+       isEditingMortage(false);
+      }
+    }
+    catch(err){
+      Swal.fire("Error",err.message,"error");
+    }
+    
+  }
   const fetchWorkFlow = async () => {
     setLoading(true);
     try {
@@ -51,6 +69,10 @@ const WorkFlow = () => {
       [name]: value,
     }));
   };
+  const handleActivityData=(e)=>{
+    const {name,value}=e.target;
+    setInitialFormDataActivity((prev)=>({...prev,[name]:value}));
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -82,13 +104,44 @@ const WorkFlow = () => {
     setIsEditing(true);
     setShowForm(true);
   };
-  const handleActivitySubmit=()=>{
-    Swal.fire({
-      title:"Aactivity submitted",
-      text:"Youre Request saccessfully submitted",
-      icon:"info"
-
-    })
+  const handleActivitySubmit=async()=>{
+   const Result=await Swal.fire({
+    title:"Are you Sure",
+    text:editingMortage?"You want to Edit this Activity ?":"You want to Add This Activity?",
+    icon:"question",
+    showCancelButton:true,
+    cancelButtonText:"Cancel",
+    confirmButtonText:"Yes/Submit"
+   })
+   if(!Result.isConfirmed)return;
+   try{
+    const method=editingMortage?"PUT":"POST";
+    const url=editingMortage?`http://localhost:9092/Client/Activities/EDIT/${ActivityId}`:
+           "http://localhost:9092/Client/Activities/add"
+                                
+    const res=await fetch(url,{
+      method:method,
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        activity: InitialFormDataActivity.activity,
+        amount: InitialFormDataActivity.amount,
+        workFloor: {id: ActivityId },
+        facilitationFee:InitialFormDataActivity.facilitationFee
+      })
+      
+    });
+    if(res.ok){
+      Swal.fire(editingMortage?"Record Changed Successfully":"Record Added Successfully");
+      setInitialFormDataActivity({amount:"",activity:""});
+      FetchActivityData(ActivityId);
+    }
+     else{
+      Swal.fire(editingMortage?"Failed to Add Record":"Failed To Update Record");
+     }
+   }
+   catch(err){
+    Swal.fire("Error",err.message, "error")
+   }
   }
 
   const handleDelete = async (id) => {
@@ -139,14 +192,16 @@ const WorkFlow = () => {
         const agreed = parseFloat(row.agreedFee || 0);
         const amount = parseFloat(row.amount || 0);
         const fee = parseFloat(row.facilitationFee || 0);
-        return (agreed - amount - fee).toFixed(2);
+        const MortageAmount=ActivityData.reduce((sum,item)=>sum+Number(item.amount+item.facilitationFee),0);
+        return (agreed - MortageAmount).toFixed(2);
       },
       sortable: true,
       cell: (row) => {
         const agreed = parseFloat(row.agreedFee || 0);
         const amount = parseFloat(row.amount || 0);
         const fee = parseFloat(row.facilitationFee || 0);
-        const profit = agreed - amount - fee;
+        setMortageAmount(ActivityData.reduce((sum,item)=>sum+Number(item.amount+item.facilitationFee),0))
+        const profit = agreed - MortageAmount - fee;
         return (
           <span style={{ color: profit < 0 ? "red" : "black", fontWeight: profit < 0 ? "bold" : "normal" }}>
             {profit.toFixed(2)}
@@ -164,7 +219,15 @@ const WorkFlow = () => {
           <button className="btn btn-danger btn-sm" onClick={() => handleDelete(row.id)}>
             Delete
           </button>
-          <button className="btn btn-info btn-sm me-2 "onClick={()=>setShowActivities(!showActivities)}>Activities</button>
+          <button className="btn btn-info btn-sm me-2 "onClick={()=>{
+            setShowActivities(true);
+            setActivityId(row.id);
+            FetchActivityData(row.id);
+          
+
+            }}>
+            Activities
+            </button>
         </>
       ),
     },
@@ -192,16 +255,35 @@ const WorkFlow = () => {
   
       {showActivities &&(<div>
               <h3>Add Client Activities Here</h3>
-              <form onSubmit={handleActivitySubmit}className="border p-4 rounded mb-4 bg-light shadow-sm">
+              <form className="border p-4 rounded mb-4 bg-light shadow-sm">
+                <input type="number" value={ActivityId} readOnly/>
                 <div className="form-group"><label className="form-label">Activity </label>
-                <input type="text"name="Activity" placeholder="Enter Activity" className="form-control"/>
+                <input 
+                       onChange={handleActivityData}
+                 type="text"name="activity" placeholder="Enter Activity" className="form-control"/>
                </div>
                <div className="form-group">
                 <label className="form-label">Amount Charged</label>
-                <input className="form-control" placeholder="Enter amount" type="number" name="Amount"/>
+                <input
+                       value={InitialFormDataActivity.amount}
+                       onChange={handleActivityData}
+                        className="form-control" placeholder="Enter amount" type="number" name="amount"
+                        />
+               </div>
+               <div className="form-group">
+                <label className="form-label">Facilitation Fee</label>
+                <input
+                       value={InitialFormDataActivity.facilitationFee}
+                       onChange={handleActivityData}
+                        className="form-control" placeholder="Enter Facilitation Fee" type="number" name="facilitationFee"
+                        />
                </div>
                <div className="flex justify-between mt-4 w-full">
-                <button style={{
+                <button
+
+                type="button"
+                onClick={handleActivitySubmit}
+                 style={{
                      backgroundColor: "green",
                      color: "white",
                      border: "none", // ← haina border
@@ -211,9 +293,10 @@ const WorkFlow = () => {
                      fontWeight: "600",
 
                 }}>
-                  Submit
+                 {editingMortage?"Edit":"Submit"} 
                 </button>
                <button
+               type="button"
                      onClick={() => setShowActivities(!showActivities)}
                       style={{
                                  backgroundColor: "red",
@@ -235,26 +318,41 @@ const WorkFlow = () => {
 
                 
               </form>
-             
+                <div  style={{ fontFamily: "Arial" }} className="bg-light  text-white rounded shadow-sm font-size-14">
                 <h4>Activities</h4>
-                <table className="table shadow-sm bg-light table-bordered mb-70 table-responsive table-striped text-center">
-                  <thead className="table-dark">
-                    <tr>
-                      <th>Activity</th>
-                      <th>Amount</th>
-                      <th>Action</th>
-                      </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>elisha</td>
-                      <td>300</td>
-                      <td>delete</td>
-                    </tr>
-                    
+                <table className="table fw-bold  bg-light mb-70 table-responsive table-striped">
+                        <thead className="table-light">
+                               <tr>
+                                   <th>Activity</th>
+                                   <th>Amount</th>
+                                   <th>Faclitation Fee</th>
+                                    <th colSpan={2}>Action</th>
+                               </tr>
+                         </thead>
 
-                  </tbody>
-                </table>
+                          <tbody>
+                          {ActivityData.map((A, idx) => (
+                              <tr key={idx}>
+                              <td>{A.activity}</td>
+                               <td>{A.amount}</td>
+                               <td>{A.facilitationFee}</td>
+                                <td colSpan={2}>
+                                   <button className="btn btn-success" onClick={() => isEditingMortage(true)}>
+                                        Edit
+                                    </button>
+        
+        
+                                     <button className="btn btn-danger">
+                                               Delete
+                                       </button>
+                                    </td>
+                                    </tr>
+                                  ))}
+                             </tbody>
+                            </table>
+                </div>
+                
+
               
 
               </div>)

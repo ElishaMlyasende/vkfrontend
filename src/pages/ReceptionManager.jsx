@@ -19,8 +19,10 @@ const ReceptionManager = () => {
   const [searchText, setSearchText] = useState("");
   const [Activities,setActivities]=useState(false);
   const [selectedUser,setSelectedUser]=useState("");
+  const[isEditingActivity,setisEditingActivity]=useState("");
 
   const apiUrl = "http://localhost:9092/api/reception";
+  const aPiUrlAct="http://localhost:9092/Reception/Client/Activity";
 
   useEffect(() => {
     fetchVisitors();
@@ -171,7 +173,12 @@ const ReceptionManager = () => {
           >
             Delete
           </button>
-          <button className="btn btn-info btn-sm" onClick={()=>setActivities(!Activities)}>Activities</button>
+          <button className="btn btn-info btn-sm" 
+          onClick={()=>{
+            setActivities(!Activities);
+            setisEditingActivity(!isEditingActivity);
+          }
+            }>Activities</button>
         </>
       ),
     },
@@ -219,7 +226,7 @@ const ReceptionManager = () => {
           </div>
           <div className="flex justify-between">
             <button className="btn btn-success btn-sm">
-              submit
+              {isEditingActivity?"Update":"Submit"}
             </button>
             <button className="btn btn-danger btn-sm" onClick={()=>setActivities(!Activities)}>Cancel</button>
 
@@ -239,7 +246,8 @@ const ReceptionManager = () => {
             <tr>
               <td>kusaini mkataba</td>
               <td>4000</td>
-              <td>delete</td>
+              <td><button onClick={()=>setisEditingActivity(!isEditingActivity)}>edit</button></td>
+          
             </tr>
           </tbody>
         </table>
