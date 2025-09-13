@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import DataTable from "react-data-table-component";
 import CommentModal from "./CommentModal";
+import { hasPermission } from "./UserPermissionGranted";
 
 
 const initialFormData = {
@@ -190,9 +191,9 @@ const CaseManagement = () => {
     name: "Actions",
     cell: (row) => (
       <>
-        <button className="btn btn-warning btn-sm me-2" onClick={() => handleEdit(row)}>Edit</button>
-        <button className="btn btn-danger btn-sm me-2" onClick={() => handleDelete(row.id)}>Delete</button>
-        <button className="btn btn-info btn-sm" onClick={() => handleViewComments(row)}>Comments</button>
+       {hasPermission("EDIT_CASE")&&<button className="btn btn-warning btn-sm me-2" onClick={() => handleEdit(row)}>Edit</button>} 
+       {hasPermission("DELETE_CASE")&& <button className="btn btn-danger btn-sm me-2" onClick={() => handleDelete(row.id)}>Delete</button>}
+        {hasPermission("VIEW_COMMENT")&&<button className="btn btn-info btn-sm" onClick={() => handleViewComments(row)}>Comments</button>}
       </>
     ),
     ignoreRowClick: true,
@@ -205,7 +206,7 @@ const CaseManagement = () => {
       <h3>Case Management</h3>
 
       <div className="d-flex justify-content-between mb-3">
-        <button
+        {hasPermission("ADD_CASE")&&<button
           className="btn btn-primary"
           onClick={() => {
             setFormData(initialFormData);
@@ -214,7 +215,8 @@ const CaseManagement = () => {
           }}
         >
           Add New Case
-        </button>
+        </button>}
+        
         <input
           type="text"
           placeholder="Search..."

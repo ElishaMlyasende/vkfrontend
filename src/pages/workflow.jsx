@@ -3,6 +3,7 @@ import Swal from "sweetalert2";
 import DataTable from "react-data-table-component";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { Client } from "stompjs";
+import { hasPermission } from "./UserPermissionGranted";
 
 const initialFormData = {
   name: "",
@@ -32,6 +33,7 @@ const WorkFlow = () => {
   const[ActivityData,setActivityData]=useState([]);
   const[ActivityId, setActivityId]=useState(null);
   const[InitialFormDataActivity, setInitialFormDataActivity]=useState({activity:"",amount:"",facilitationFee:""});
+  const[MortageUpdatingData, setMortageUpdatingData]=useState({id:null,amount:"",activity:"",facilitationFee:""});
 
   const FetchActivityData=async(ActivityId)=>{
     try{
@@ -40,7 +42,6 @@ const WorkFlow = () => {
         const data= await res.json();
         setActivityData(data);
         setShowActivities(true); // 
-       isEditingMortage(false);
       }
     }
     catch(err){
@@ -69,10 +70,21 @@ const WorkFlow = () => {
       [name]: value,
     }));
   };
-  const handleActivityData=(e)=>{
-    const {name,value}=e.target;
-    setInitialFormDataActivity((prev)=>({...prev,[name]:value}));
-  }
+  const handleActivityData = (e) => {
+    const { name, value } = e.target;
+    if (editingMortage) {
+      setMortageUpdatingData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    } else {
+      setInitialFormDataActivity((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
+  };
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -103,45 +115,96 @@ const WorkFlow = () => {
     setFormData(item);
     setIsEditing(true);
     setShowForm(true);
-  };
-  const handleActivitySubmit=async()=>{
-   const Result=await Swal.fire({
-    title:"Are you Sure",
-    text:editingMortage?"You want to Edit this Activity ?":"You want to Add This Activity?",
-    icon:"question",
-    showCancelButton:true,
-    cancelButtonText:"Cancel",
-    confirmButtonText:"Yes/Submit"
-   })
-   if(!Result.isConfirmed)return;
-   try{
-    const method=editingMortage?"PUT":"POST";
-    const url=editingMortage?`http://localhost:9092/Client/Activities/EDIT/${ActivityId}`:
-           "http://localhost:9092/Client/Activities/add"
-                                
-    const res=await fetch(url,{
-      method:method,
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({
-        activity: InitialFormDataActivity.activity,
-        amount: InitialFormDataActivity.amount,
-        workFloor: {id: ActivityId },
-        facilitationFee:InitialFormDataActivity.facilitationFee
-      })
-      
+  };const handleActivitySubmit = async () => {
+    console.log("editingMortage:", editingMortage);
+    console.log("MortageUpdatingData.id:", MortageUpdatingData.id);
+  
+    const Result = await Swal.fire({
+      title: "Are you Sure",
+      text: editingMortage ? "You want to Edit this Activity ?" : "You want to Add This Activity?",
+      icon: "question",
+      showCancelButton: true,
+      cancelButtonText: "Cancel",
+      confirmButtonText: "Yes/Submit"
     });
-    if(res.ok){
-      Swal.fire(editingMortage?"Record Changed Successfully":"Record Added Successfully");
-      setInitialFormDataActivity({amount:"",activity:""});
-      FetchActivityData(ActivityId);
+    
+    if (!Result.isConfirmed) return;
+    
+    try {
+      const method = editingMortage ? "PUT" : "POST";
+      const url = editingMortage ? 
+        `http://localhost:9092/Client/Activities/EDIT/${MortageUpdatingData.id}` : 
+        "http://localhost:9092/Client/Activities/add";
+      
+      // Log what is being sent to API:
+      console.log("Submitting:", { 
+        method, 
+        url, 
+        body: {
+          activity: editingMortage ? MortageUpdatingData.activity : InitialFormDataActivity.activity,
+          amount: editingMortage ? MortageUpdatingData.amount : InitialFormDataActivity.amount,
+          workFloor: { id: ActivityId },
+          facilitationFee: editingMortage ? MortageUpdatingData.facilitationFee : InitialFormDataActivity.facilitationFee,
+        }
+      });
+      
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          activity: editingMortage ? MortageUpdatingData.activity : InitialFormDataActivity.activity,
+          amount: editingMortage ? MortageUpdatingData.amount : InitialFormDataActivity.amount,
+          workFloor: { id: ActivityId },
+          facilitationFee: editingMortage ? MortageUpdatingData.facilitationFee : InitialFormDataActivity.facilitationFee,
+        }),
+      });
+  
+      if (res.ok) {
+        Swal.fire(editingMortage ? "Record Changed Successfully" : "Record Added Successfully");
+        setInitialFormDataActivity({ amount: "", activity: "", facilitationFee: "" });
+        isEditingMortage(false);
+        FetchActivityData(ActivityId);
+      } else {
+        Swal.fire(editingMortage ? "Failed to Update Record" : "Failed To Add Record");
+      }
+    } catch (err) {
+      Swal.fire("Error", err.message, "error");
     }
-     else{
-      Swal.fire(editingMortage?"Failed to Add Record":"Failed To Update Record");
-     }
-   }
-   catch(err){
-    Swal.fire("Error",err.message, "error")
-   }
+  };
+  
+  const handleDeleteActivity=async(id)=>{
+    const result=await Swal.fire({
+      title:"Are Sure ?",
+      text:"You Want To Remove This Activity?",
+      icon:"question",
+      showCancelButton:true,
+      cancelButtonText:"No/Cancel",
+      confirmButtonText:"Yes/Delete",
+      confirmButtonColor:"green",
+      cancelButtonColor:"red"
+    })
+    if(!result.isConfirmed)return;
+    try{
+      const url=`http://localhost:9092/Client/Activities/delete/${id}`
+      const method="DELETE"
+      const res=await fetch(url,{
+        method:method
+      }
+       
+      );
+      if(res.ok){
+        setActivityData((prev)=>prev.filter((item)=>item.id!==id));
+        Swal.fire({
+          title:"Deleted",
+          text:"Activity Deleted SuccessFully",
+          icon:"success"
+        })
+      }
+
+    }
+    catch(err){
+      Swal.fire("Erroe", err.message, "error");
+    }
   }
 
   const handleDelete = async (id) => {
@@ -190,15 +253,15 @@ const WorkFlow = () => {
       name: "Profit",
       selector: (row) => {
         const agreed = parseFloat(row.agreedFee || 0);
-        const amount = parseFloat(row.amount || 0);
-        const fee = parseFloat(row.facilitationFee || 0);
+        //const amount = parseFloat(row.amount || 0);
+        //const fee = parseFloat(row.facilitationFee || 0);
         const MortageAmount=ActivityData.reduce((sum,item)=>sum+Number(item.amount+item.facilitationFee),0);
         return (agreed - MortageAmount).toFixed(2);
       },
       sortable: true,
       cell: (row) => {
         const agreed = parseFloat(row.agreedFee || 0);
-        const amount = parseFloat(row.amount || 0);
+       const amount = parseFloat(row.amount || 0);
         const fee = parseFloat(row.facilitationFee || 0);
         setMortageAmount(ActivityData.reduce((sum,item)=>sum+Number(item.amount+item.facilitationFee),0))
         const profit = agreed - MortageAmount - fee;
@@ -213,21 +276,24 @@ const WorkFlow = () => {
       name: "Actions",
       cell: (row) => (
         <>
-          <button className="btn btn-warning btn-sm me-2" onClick={() => handleEdit(row)}>
+        {hasPermission("EDIT_MORTGAGE")&&<button className="btn btn-warning btn-sm me-2" onClick={() => handleEdit(row)}>
             Edit
-          </button>
-          <button className="btn btn-danger btn-sm" onClick={() => handleDelete(row.id)}>
+          </button>}
+          {hasPermission("DELETE_MORTGAGE")&&<button className="btn btn-danger btn-sm" onClick={() => handleDelete(row.id)}>
             Delete
-          </button>
+          </button>}
+          {hasPermission("ADD_MORTGAGE_ACTIVITY")&&
           <button className="btn btn-info btn-sm me-2 "onClick={()=>{
             setShowActivities(true);
             setActivityId(row.id);
             FetchActivityData(row.id);
+            
           
 
             }}>
             Activities
-            </button>
+            </button>}
+          
         </>
       ),
     },
@@ -242,7 +308,7 @@ const WorkFlow = () => {
       <h2 className="mb-4 text-primary text-center">Mortgage Works</h2>
 
       <div className="text-end mb-3">
-        <button
+        {hasPermission("ADD_MORTGAGE")&& <button
           className="btn btn-outline-primary"
           onClick={() => {
             if (!showForm) resetForm();
@@ -250,22 +316,26 @@ const WorkFlow = () => {
           }}
         >
           {showForm ? "Close Form" : "Add New Record"}
-        </button>
+        </button>}
+       
       </div>
   
       {showActivities &&(<div>
               <h3>Add Client Activities Here</h3>
               <form className="border p-4 rounded mb-4 bg-light shadow-sm">
-                <input type="number" value={ActivityId} readOnly/>
+                <input type="hidden" value={editingMortage?MortageUpdatingData.id:ActivityId} readOnly/>
                 <div className="form-group"><label className="form-label">Activity </label>
                 <input 
-                       onChange={handleActivityData}
-                 type="text"name="activity" placeholder="Enter Activity" className="form-control"/>
+                        onChange={handleActivityData}
+                        type="text"name="activity" placeholder="Enter Activity"
+                        className="form-control"
+                        value={editingMortage?MortageUpdatingData.activity:InitialFormDataActivity.activity}
+                        />
                </div>
                <div className="form-group">
                 <label className="form-label">Amount Charged</label>
                 <input
-                       value={InitialFormDataActivity.amount}
+                       value={editingMortage?MortageUpdatingData.amount:InitialFormDataActivity.amount}
                        onChange={handleActivityData}
                         className="form-control" placeholder="Enter amount" type="number" name="amount"
                         />
@@ -273,9 +343,10 @@ const WorkFlow = () => {
                <div className="form-group">
                 <label className="form-label">Facilitation Fee</label>
                 <input
-                       value={InitialFormDataActivity.facilitationFee}
+                       value={editingMortage?MortageUpdatingData.facilitationFee:InitialFormDataActivity.facilitationFee}
                        onChange={handleActivityData}
-                        className="form-control" placeholder="Enter Facilitation Fee" type="number" name="facilitationFee"
+                        className="form-control" placeholder="Enter Facilitation Fee"
+                         type="number" name="facilitationFee"
                         />
                </div>
                <div className="flex justify-between mt-4 w-full">
@@ -337,14 +408,20 @@ const WorkFlow = () => {
                                <td>{A.amount}</td>
                                <td>{A.facilitationFee}</td>
                                 <td colSpan={2}>
-                                   <button className="btn btn-success" onClick={() => isEditingMortage(true)}>
+                                  {hasPermission("EDIT_MORTGAGE_ACTIVITY")&&<button className="btn btn-success" onClick={() =>{
+                                    isEditingMortage(!editingMortage);
+                                    setMortageUpdatingData({id:A.id,activity:A.activity,amount:A.amount,facilitationFee:A.facilitationFee});
+                                   } }>
                                         Edit
-                                    </button>
+                                    </button>}
+                                   
         
-        
-                                     <button className="btn btn-danger">
+                                     {hasPermission("DELETE_MORTGAGE_ACTIVITY")&&<button 
+                                       onClick={()=>handleDeleteActivity(A.id)}
+                                       className="btn btn-danger">
                                                Delete
-                                       </button>
+                                       </button>}
+                                     
                                     </td>
                                     </tr>
                                   ))}

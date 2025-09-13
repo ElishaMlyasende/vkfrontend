@@ -6,9 +6,9 @@ const DynamicRoutes = ({ menus }) => {
   return (
     <Routes>
       {menus.map((menu, idx) => {
-        const Component = componentMap[menu.component] || componentMap.NotFound;
+        const Component = componentMap[menu.menu.component] || componentMap.NotFound;
         return (
-          <Route key={idx} path={menu.path} element={<Component />} />
+          <Route key={idx} path={menu.menu.path} element={<Component />} />
         );
       })}
     </Routes>

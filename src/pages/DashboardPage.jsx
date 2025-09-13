@@ -59,14 +59,14 @@ export default function DashboardPage() {
                   <li className="nav-item" key={idx}>
                     <Link
                       className="nav-link link-dark py-2 px-10 rounded mb-1"
-                      to={menu.path}
+                      to={menu.menu.path}
                       style={{
                         fontSize: "0.875rem",
                         transition: "all 0.2s ease-in-out",
                       }}
                     >
                       <i className="bi bi-menu-button-wide me-2 text-primary"></i>
-                      {menu.title}
+                      {menu.menu.title}
                     </Link>
                   </li>
                 ))}

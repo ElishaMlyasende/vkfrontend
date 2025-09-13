@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import DataTable from "react-data-table-component";
 import "bootstrap/dist/css/bootstrap.min.css";
+import { hasPermission } from "./UserPermissionGranted";
 
 const initialFormData = {
   visitorName: "",
@@ -17,15 +18,77 @@ const ReceptionManager = () => {
   const [editingId, setEditingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [searchText, setSearchText] = useState("");
-  const [Activities,setActivities]=useState(false);
+  const [showActivities,setShowActivities]=useState(false);
   const [selectedUser,setSelectedUser]=useState("");
-  const[isEditingActivity,setisEditingActivity]=useState("");
+  const[isEditingActivity,setisEditingActivity]=useState(false);
+  const[ActivityId,setActivityId]=useState(null);
+  const[InitialFormDataActivity,setInitialFormDataActivity]=useState({amount:"",activity:""});
+  const[edtingActivityData,setIsEditingActivityData]=useState({amount:"",activity:"",id:"",received:""});
+  const[users,setUsers]=useState([]);
+  const[ReceptionActivityData,setReceptionActivityData]=useState([]);
+
 
   const apiUrl = "http://localhost:9092/api/reception";
-  const aPiUrlAct="http://localhost:9092/Reception/Client/Activity";
+  //FETCHING USER ACTIVITY DATA
+  const fetchReceptionActivityData=async(ActivityId)=>{
+    try{
+      const res=await fetch(`http://localhost:9092/Reception/Client/Activity/ById/${ActivityId}`)
+      const data=await res.json();
+      setReceptionActivityData(data);
+    }
+    catch(err){
+      console.error("error in fetching activity data", err);
+    }
+  }
+  //here just deleting the activity record according to id
+  const handleDeleteActivity=async(id)=>{
+    const result=await Swal.fire({
+      title:"Sure ?",
+      text:"You Want To Remove This Record",
+      icon:"question",
+      showCancelButton:true,
+      cancelButtonText:"No...",
+      cancelButtonColor:"red",
+      confirmButtonText:"Yes.....Remove",
+      confirmButtonColor:"green"
+    })
+    if(!result.isConfirmed)return;
+    try{
+      const url=await fetch(`http://localhost:9092/Reception/Client/Activity/delete/${id}`,{
+        method:"DELETE"
+      });
+        if(url.ok){
+          Swal.fire({
+            title:"Success",
+            text:"Record Deleted Successfully",
+            icon:"success"
+          })
+          fetchReceptionActivityData(ActivityId);
+        }
+        else{
+          Swal.fire("Failed to delete data", "Something went wrong");
+        }
 
+    }
+    catch(err){
+      Swal.fire("Error",err.message,"error");
+    }
+  }
+  // here am trying to find all users
+  const fetchUsers=async()=>{
+    try{
+      const res=await fetch("http://localhost:8082/api/v1/user/all");
+        const data=await res.json();
+        setUsers(data);
+    }
+    catch(err){
+        console.error("Fetch error ", err);
+    }
+    
+  }
   useEffect(() => {
     fetchVisitors();
+    fetchUsers();
   }, []);
 
   const fetchVisitors = async () => {
@@ -33,14 +96,18 @@ const ReceptionManager = () => {
       const res = await fetch(`${apiUrl}/all`);
       const data = await res.json();
       setVisitors(data);
-    } catch (error) {
-      console.error("Fetch Error:", error);
+    } catch(err) {
+      console.error("Fetch Error", err);
     }
-  };
+  }
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+  const handleChangeActivity=(e)=>{
+    setInitialFormDataActivity({...InitialFormDataActivity,[e.target.name]:e.target.value})
+    setIsEditingActivityData({...edtingActivityData,[e.target.name]:e.target.value})
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -70,12 +137,49 @@ const ReceptionManager = () => {
       console.error("Submit Error:", error);
     }
   };
-  const handleSubmitActivity=()=>{
-    Swal.fire({
-      title:"Activity Submitted",
-      text:"Activity has been added successfully",
-      icon:"success"
+  const handleSubmitActivity=async()=>{
+    const Result=await Swal.fire({
+      title:"Sure?",
+      text:isEditingActivity?"You Want to Update This Item":"You Want to Add This Activity",
+      icon:"question",
+      showCancelButton:true,
+      cancelButtonText:"No/Cancel",
+      confirmButtonText:"Yes/Submit",
+      confirmButtonColor:"green",
+      cancelButtonColor:"red"
     })
+    if(!Result.isConfirmed) return;
+    try{
+      const method=isEditingActivity?"PUT":"POST";
+      const url=isEditingActivity?`http://localhost:9092/Reception/Client/Activity/edit/${edtingActivityData.id}`
+                                  :"http://localhost:9092/Reception/Client/Activity/add";
+      const res=await fetch(url,{
+        method:method,
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({
+          amount: isEditingActivity ? edtingActivityData.amount : InitialFormDataActivity.amount,
+          activity: isEditingActivity ? edtingActivityData.activity : InitialFormDataActivity.activity,
+          reception: { id: ActivityId },
+          received: isEditingActivity ? edtingActivityData.received : selectedUser
+        })
+      })
+      if(res.ok){
+        Swal
+        .fire({
+          title:"success",
+          text:isEditingActivity?"Updated Successfully":"Added Successfully",
+          icon:"success"
+        })
+        fetchReceptionActivityData(ActivityId);
+      }
+      else{
+        Swal.fire("Failed To save");
+      }
+
+    }
+    catch(err){
+      Swal.fire("Error", err.message, "error");
+    }
   }
 
   const handleEdit = (visitor) => {
@@ -153,12 +257,13 @@ const ReceptionManager = () => {
       name: "Actions",
       cell: (row) => (
         <>
-          <button
+        {hasPermission("EDIT_VISTOR")&& <button
             className="btn btn-sm btn-warning me-2"
             onClick={() => handleEdit(row)}
           >
             Edit
-          </button>
+          </button>}
+         
           {!row.attended && (
             <button
               className="btn btn-sm btn-success me-2"
@@ -167,18 +272,21 @@ const ReceptionManager = () => {
               Attend
             </button>
           )}
-          <button
+          {hasPermission("DELETE_VISTOR")&& <button
             className="btn btn-sm btn-danger"
             onClick={() => handleDelete(row.id)}
           >
             Delete
-          </button>
-          <button className="btn btn-info btn-sm" 
+          </button>}
+          {hasPermission("VIEW_VISTOR_ACTIVITY")&&  <button className="btn btn-info btn-sm" 
           onClick={()=>{
-            setActivities(!Activities);
-            setisEditingActivity(!isEditingActivity);
+            setShowActivities(!showActivities);
+            setActivityId(row.id);
+            fetchReceptionActivityData(row.id)
           }
-            }>Activities</button>
+            }>Activities</button>}
+         
+        
         </>
       ),
     },
@@ -190,7 +298,7 @@ const ReceptionManager = () => {
       <h2 className="mb-4 text-center text-primary">Reception Visitors</h2>
 
       <div className="text-end mb-3">
-        <button
+        {hasPermission("ADD_VISTOR")&& <button
           className="btn btn-outline-primary"
           onClick={() => {
             setShowForm(!showForm);
@@ -201,34 +309,66 @@ const ReceptionManager = () => {
           }}
         >
           {showForm ? "Close Form" : "Add Visitor"}
-        </button>
+        </button>}
+       
       </div>
-      {Activities && (
+      {showActivities && (
       <div>
         <h3>Add Activities Here</h3>
-        <form onSubmit={handleSubmitActivity} className="mb-5 rounded p-4 shadow-sm bg-light">
+        <form  className="mb-5 rounded p-4 shadow-sm bg-light">
+          <input type="number" value={isEditingActivity?edtingActivityData.id:ActivityId} readOnly/>
           <div className="form-group">
             <label className="form-label">Activity</label>
-            <input className="form-control" placeholder="Enter Activity Here" name="Activity" type="text"/>
+            <input 
+                    value={isEditingActivity?edtingActivityData.activity:InitialFormDataActivity.activity}
+                    className="form-control" placeholder="Enter Activity Here"
+                    name="activity" type="text"
+                    onChange={handleChangeActivity}
+                    />
           </div>
           <div className="form-group">
             <label className="form-label">Amount</label>
-            <input className="form-control" placeholder="Enter Activity Here" name="Amount" type="number"/>
+            <input 
+                   value={isEditingActivity?edtingActivityData.amount:InitialFormDataActivity.amount}
+                  className="form-control" placeholder="Enter Charged Amount"
+                  name="amount" type="number"
+                   onChange={handleChangeActivity}/>
+              </div>
+          <div className="form-group">
+            <label className="form=label">Received By </label>
+           
             <select
               name="user"
-              value={selectedUser}
-              onChange={(e) => setSelectedUser(e.target.value)}
-             className="border p-2 rounded form-select w-50"
+               value={isEditingActivity?edtingActivityData.received:selectedUser}
+               onChange={(e) => setSelectedUser(e.target.value)}
+               className="border p-2 rounded form-select w-100"
              >
-            <option value="">Select a user</option>
-            <option value="john">john</option>
-       </select>
+                   <option value="">Select Who Received</option>
+                   {users.map((item) => (
+                    <option key={item.id} value={item.first_name}>
+                      {item.first_name} {item.last_name}
+                     </option>
+                     ))}
+                     </select>
+
+            
           </div>
+            
+            
+         
           <div className="flex justify-between">
-            <button className="btn btn-success btn-sm">
+            <button
+            type="button"
+            onClick={()=>handleSubmitActivity()}
+             className="btn btn-success btn-sm">
               {isEditingActivity?"Update":"Submit"}
             </button>
-            <button className="btn btn-danger btn-sm" onClick={()=>setActivities(!Activities)}>Cancel</button>
+            <button className="btn btn-danger btn-sm" 
+            onClick={()=>{
+              setShowActivities(false);
+              
+
+            }}>Cancel</button>
 
           </div>
 
@@ -238,17 +378,36 @@ const ReceptionManager = () => {
             <tr>
             <th>ACtivity</th>
             <th>Amount</th>
-            <th>Action</th>
+            <th>Received By</th>
+            <th colSpan={2}>Action</th>
             </tr>
             
           </thead>
           <tbody>
-            <tr>
-              <td>kusaini mkataba</td>
-              <td>4000</td>
-              <td><button onClick={()=>setisEditingActivity(!isEditingActivity)}>edit</button></td>
-          
-            </tr>
+          {ReceptionActivityData.map((item, idx)=>(
+            <tr key={idx}>
+            <td>{item.activity}</td>
+            <td>{item.amount}</td>
+            <td>{item.received}</td>
+            <td colSpan={2}>
+              {hasPermission("EDIT_VISTOR_ACTIVITY")&&
+               <button className="btn btn-success"onClick={()=>{
+                            setisEditingActivity(!isEditingActivity);
+                            setIsEditingActivityData({amount:item.amount,activity:item.activity,id:item.id,received:item.received})
+                            
+              }
+                
+                }>Edit</button>}
+                {hasPermission("DELETE_VISTOR_ACTIVITY")&&<button
+               onClick={()=>handleDeleteActivity(item.id)}
+               className="btn btn-danger">Delete</button>}
+             
+              
+              </td>
+        
+          </tr>
+          ))}
+            
           </tbody>
         </table>
       </div>)

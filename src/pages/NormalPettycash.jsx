@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import DataTable from "react-data-table-component";
+import { hasPermission } from "./UserPermissionGranted";
 
 const initialFormData = {
   date: "",
@@ -110,12 +111,12 @@ const CashPayment = () => {
       name: "Actions",
       cell: (row) => (
         <>
-          <button className="btn btn-warning btn-sm me-2" onClick={() => handleEdit(row)}>
+        {hasPermission("EDIT_NORMAL_PETTYCASH") &&   <button className="btn btn-warning btn-sm me-2" onClick={() => handleEdit(row)}>
             Edit
-          </button>
-          <button className="btn btn-danger btn-sm" onClick={() => handleDelete(row.id)}>
+          </button>}
+          {hasPermission("DELETE_NORMAL_PETTYCASH")&&<button className="btn btn-danger btn-sm" onClick={() => handleDelete(row.id)}>
             Delete
-          </button>
+          </button>}
         </>
       ),
     },
@@ -130,6 +131,7 @@ const CashPayment = () => {
       <h3 className="mb-3 text-center">Daily Cash Transactions</h3>
 
       <div className="mb-3 text-end">
+        {hasPermission("ADD_NORMAL_PETTYCASH")&&
         <button
           className="btn btn-primary"
           onClick={() => {
@@ -139,7 +141,8 @@ const CashPayment = () => {
           }}
         >
           Add Petty Cash
-        </button>
+        </button>}
+      
       </div>
 
       {error && <div className="alert alert-danger">{error}</div>}

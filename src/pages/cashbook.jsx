@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import DataTable from "react-data-table-component";
 import "bootstrap/dist/css/bootstrap.min.css";
+import { hasPermission } from "./UserPermissionGranted";
 
 const initialFormData = {
   date: "",
@@ -139,12 +140,12 @@ const NormalPettyCash = () => {
       name: "Actions",
       cell: (row) => (
         <>
-          <button className="btn btn-warning btn-sm me-2" onClick={() => handleEdit(row)}>
+        {hasPermission("EDIT_MOBILE_PETTYCASH")&&<button className="btn btn-warning btn-sm me-2" onClick={() => handleEdit(row)}>
             Edit
-          </button>
-          <button className="btn btn-danger btn-sm" onClick={() => handleDelete(row.id)}>
+          </button>}
+          {hasPermission("DELETE_MOBILE_PETTYCASH")&&  <button className="btn btn-danger btn-sm" onClick={() => handleDelete(row.id)}>
             Delete
-          </button>
+          </button>}
         </>
       ),
     },
@@ -159,6 +160,7 @@ const NormalPettyCash = () => {
       <h3 className="text-primary text-center mb-3">Mobile Daily Transactions</h3>
 
       <div className="text-end mb-3">
+        {hasPermission("ADD_MOBILE_PETTYCASH")&&
         <button
           className="btn btn-primary"
           onClick={() => {
@@ -168,7 +170,7 @@ const NormalPettyCash = () => {
           }}
         >
           {showForm ? "Cancel" : "Add PettyCash"}
-        </button>
+        </button>}
       </div>
 
       {showForm && (
@@ -191,7 +193,7 @@ const NormalPettyCash = () => {
                   value={formData[key] || ""}
                   onChange={handleChange}
                   className="form-control"
-                  required={["date", "amountIn", "mpesaFee", "clientName"].includes(key)}
+                  required={["date", "clientName"].includes(key)}
                 />
               </div>
             ))}
