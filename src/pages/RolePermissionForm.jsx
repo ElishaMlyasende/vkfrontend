@@ -3,8 +3,8 @@ import React, { useState } from "react";
 const BASE_URL = "http://13.48.138.226:8080/api/v1/user/user-permission";
 
 function UserPermissionForm() {
-  const [userId, setUserId] = useState("");
-  const [permissionIds, setPermissionIds] = useState("");
+  const [RoleId, setRoleId] = useState("");
+  const [permissionIds, setPermissionIds] = useState({});
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -5,12 +5,13 @@ import WorkFlow from "./workflow";
 import Permission from "./permission";
 import UserMenu from "./userMenu";
 import UserMenuForm from "./UserMenuForm";
-import UserPermissionForm from "./UserPermissionForm";
+import UserPermissionForm from "./RolePermissionForm";
 import Menu from "./Menu";
 import CashBook from "./cashbook";
 import CashPayment from "./NormalPettycash";
 import CaseManagement from "./case";
 import ReceptionManager from "./ReceptionManager";
+import RolePermission from "./Role";
 
 const componentMap = {
   DashboardPage,
@@ -25,7 +26,8 @@ const componentMap = {
   CashBook,
   CashPayment,
   CaseManagement,
-  ReceptionManager
+  ReceptionManager,
+  RolePermission
 };
 
 export default componentMap;
