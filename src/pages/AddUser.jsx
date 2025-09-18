@@ -20,6 +20,10 @@ const AddUser = () => {
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [userId, setUserId] = useState(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   useEffect(() => {
     fetchUsers();
@@ -122,6 +126,48 @@ const AddUser = () => {
       Swal.fire("Error", err.message, "error");
     }
   };
+  const handlePasswordChange = async (e, userId) => {
+    e.preventDefault();
+  
+    console.log("New Password:", newPassword); // <<< Hapa
+    console.log("Confirm Password:", confirmPassword); // <<< Hapa
+  
+    if (!newPassword || !confirmPassword) {
+      Swal.fire("Error", "Password cannot be empty", "error");
+      return;
+    }
+  
+    if (newPassword !== confirmPassword) {
+      Swal.fire("Error", "Passwords do not match", "error");
+      return;
+    }
+  
+    try {
+      const res = await fetch(
+        `http://localhost:8082/api/v1/user/Password/Edit/${userId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: newPassword }),
+        }
+      );
+  
+      const message = await res.text();
+  
+      if (res.ok) {
+        Swal.fire("Success", message, "success");
+        setShowPasswordForm(false);
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        throw new Error(message || "Failed to update password");
+      }
+    } catch (err) {
+      Swal.fire("Error", err.message, "error");
+    }
+  };
+  
+  
 
   const filteredUsers = users.filter((u) =>
     Object.values(u).join(" ").toLowerCase().includes(search.toLowerCase())
@@ -150,10 +196,19 @@ const AddUser = () => {
             Edit
           </button>
           <button
-            className="btn btn-danger btn-sm"
+            className="btn btn-danger btn-sm me-2"
             onClick={() => handleDelete(row.id)}
           >
             Delete
+          </button>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => {
+              setUserId(row.id);
+              setShowPasswordForm(true);
+            }}
+          >
+            Change Password
           </button>
         </>
       ),
@@ -164,8 +219,57 @@ const AddUser = () => {
     <div className="container mt-5">
       <h3 className="mb-4">Manage System Users</h3>
 
+      {showPasswordForm && (
+        <div>
+          <form
+            className="border p-4 mb-4 rounded bg-light shadow-sm"
+            onSubmit={(e) => handlePasswordChange(e, userId)}
+          >
+            <div className="row mb-3">
+              <label className="form-label">New Password</label>
+              <input
+                type="password"
+                value={newPassword}
+                className="form-control"
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+              />
+            </div>
+            <div className="row mb-3">
+              <label className="form-label">Confirm Password</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                className="form-control"
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+            </div>
+            
+              <button type="submit" className="btn btn-primary me-2">
+                Submit
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  setShowPasswordForm(false);
+                  setNewPassword("");
+                  setConfirmPassword("");
+                }}
+              >
+                Cancel
+              </button>
+            
+          </form>
+        </div>
+      )}
+
       {showForm && (
-        <form onSubmit={handleSubmit} className="border p-4 mb-4 rounded bg-light shadow-sm">
+        <form
+          onSubmit={handleSubmit}
+          className="border p-4 mb-4 rounded bg-light shadow-sm"
+        >
           <div className="row">
             {Object.keys(initialForm).map((key, idx) => {
               if (key === "password" && isEditing) return null;

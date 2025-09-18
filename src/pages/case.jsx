@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import DataTable from "react-data-table-component";
-import CommentModal from "./CommentModal";
 import { hasPermission } from "./UserPermissionGranted";
-
 
 const initialFormData = {
   id: null,
@@ -36,6 +34,16 @@ const CaseManagement = () => {
   const [showComments, setShowComments] = useState(false);
   const [activeCase, setActiveCase] = useState(null);
 
+  // comments
+  const [comments, setComments] = useState([]);
+  const [isEditingMessage, setIsEditingMessage] = useState(false);
+  const [commentData, setCommentData] = useState({ message: "", caseId: "" });
+  const [messageEditingData, setMessageEditingData] = useState({
+    message: "",
+    caseId: "",
+    id: null,
+  });
+
   useEffect(() => {
     fetchCaseData();
   }, []);
@@ -51,6 +59,48 @@ const CaseManagement = () => {
       setError(err.message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchComments = async (caseId) => {
+    try {
+      const res = await fetch(`http://localhost:9099/comment/${caseId}`);
+      const data = await res.json();
+      setComments(data);
+    } catch (err) {
+      console.error("Failed to fetch comments", err);
+    }
+  };
+
+  const saveComment = async () => {
+    const payload = isEditingMessage
+      ? messageEditingData
+      : { ...commentData, caseId: activeCase.id };
+
+    const method = isEditingMessage ? "PUT" : "POST";
+    const url = isEditingMessage
+      ? `http://localhost:9099/comment/edit/${payload.id}`
+      : "http://localhost:9099/comment/add";
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("Failed to save comment");
+      Swal.fire("Success", "Comment saved", "success");
+
+      // reset fields
+      setCommentData({ message: "", caseId: "" });
+      setMessageEditingData({ message: "", caseId: "", id: null });
+      setIsEditingMessage(false);
+
+      // refresh
+      fetchComments(activeCase.id);
+    } catch (err) {
+      Swal.fire("Error", err.message, "error");
     }
   };
 
@@ -152,6 +202,7 @@ const CaseManagement = () => {
   const handleViewComments = (caseItem) => {
     setActiveCase(caseItem);
     setShowComments(true);
+    fetchComments(caseItem.id);
   };
 
   const filteredCases = caseData.filter((item) =>
@@ -191,9 +242,21 @@ const CaseManagement = () => {
     name: "Actions",
     cell: (row) => (
       <>
-       {hasPermission("EDIT_CASE")&&<button className="btn btn-warning btn-sm me-2" onClick={() => handleEdit(row)}>Edit</button>} 
-       {hasPermission("DELETE_CASE")&& <button className="btn btn-danger btn-sm me-2" onClick={() => handleDelete(row.id)}>Delete</button>}
-        {hasPermission("VIEW_COMMENT")&&<button className="btn btn-info btn-sm" onClick={() => handleViewComments(row)}>Comments</button>}
+        {hasPermission("EDIT_CASE") && (
+          <button className="btn btn-warning btn-sm me-2" onClick={() => handleEdit(row)}>
+            Edit
+          </button>
+        )}
+        {hasPermission("DELETE_CASE") && (
+          <button className="btn btn-danger btn-sm me-2" onClick={() => handleDelete(row.id)}>
+            Delete
+          </button>
+        )}
+        {hasPermission("VIEW_COMMENT") && (
+          <button className="btn btn-info btn-sm" onClick={() => handleViewComments(row)}>
+            Comments
+          </button>
+        )}
       </>
     ),
     ignoreRowClick: true,
@@ -206,17 +269,19 @@ const CaseManagement = () => {
       <h3>Case Management</h3>
 
       <div className="d-flex justify-content-between mb-3">
-        {hasPermission("ADD_CASE")&&<button
-          className="btn btn-primary"
-          onClick={() => {
-            setFormData(initialFormData);
-            setShowForm(true);
-            setIsEditing(false);
-          }}
-        >
-          Add New Case
-        </button>}
-        
+        {hasPermission("ADD_CASE") && (
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              setFormData(initialFormData);
+              setShowForm(true);
+              setIsEditing(false);
+            }}
+          >
+            Add New Case
+          </button>
+        )}
+
         <input
           type="text"
           placeholder="Search..."
@@ -263,6 +328,56 @@ const CaseManagement = () => {
         </form>
       )}
 
+      {showComments && (
+        <div className="modal show fade" style={{ display: "block" }}>
+          <div className="modal-dialog modal-lg">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5>Comments for Case {activeCase?.caseNumber || "N/A"}</h5>
+              </div>
+              <div className="modal-body">
+                {comments.length > 0 ? (
+                  comments.map((c, index) => (
+                    <div key={index} className="border p-2 mb-2 rounded">
+                      <p>{c.message}</p>
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => {
+                          setMessageEditingData({ message: c.message, caseId: c.caseId, id: c.id });
+                          setIsEditingMessage(true);
+                        }}
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <p>No comments available</p>
+                )}
+              </div>
+              <div className="modal-footer">
+              <textarea
+                className="form-control me-2"
+                placeholder="Write a comment Here..."
+                rows={20} // unaweza kuongeza rows kulingana na unavyotaka uonekane kubwa
+                value={isEditingMessage ? messageEditingData.message : commentData.message}
+                onChange={(e) =>
+                isEditingMessage
+                ? setMessageEditingData({ ...messageEditingData, message: e.target.value })
+                 : setCommentData({ ...commentData, message: e.target.value, caseId: activeCase.id })
+  }
+/>
+<button className="btn btn-primary" onClick={()=>setShowComments(!showComments)}>Cancel</button>
+
+                <button className="btn btn-primary" onClick={saveComment}>
+                  {isEditingMessage ? "Update" : "Send"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isLoading ? (
         <p>Loading...</p>
       ) : error ? (
@@ -278,12 +393,6 @@ const CaseManagement = () => {
           noDataComponent="No records found"
         />
       )}
-
-      <CommentModal
-        show={showComments}
-        onHide={() => setShowComments(false)}
-        activeCase={activeCase}
-      />
     </div>
   );
 };
